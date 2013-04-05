@@ -195,7 +195,6 @@ namespace wally
 
                             if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.8 && skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.3 && currentLine.Points.Count > 1)
                             {
-                                System.Console.WriteLine("Thick Line");
                                 if (currentStroke == 2)
                                 {
                                     DrawLine(System.Windows.Media.Brushes.White, 20);
@@ -209,7 +208,6 @@ namespace wally
                             //When the hand is further away from the screen (else if - case) the line gets thinner
                             else if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.3 && currentLine.Points.Count > 1)
                             {
-                                System.Console.WriteLine("Thin Line");
                                 if (currentStroke == 1)
                                 {
                                     DrawLine(System.Windows.Media.Brushes.White, 5);
