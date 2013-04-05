@@ -31,6 +31,7 @@ namespace wally
     {
 
         private static int Runs = 0;
+       
         //Width and Height of our drawing output
         private const float RenderWidth = 640.0f;
         private const float RenderHeight = 480.0f;
@@ -91,7 +92,6 @@ namespace wally
 
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
-
             MyImage.Source = this.imageSource; //display the drawing to use our image control
 
             // Look through all sensors and start the first connected one.
@@ -147,10 +147,9 @@ namespace wally
                 currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
                 myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
 
-
-
                 //Add an event handler to be called whenever there is new skeleton frame...
                 this.sensor.SkeletonFrameReady += this.SkeletonFrameReady;
+
 
                 // Start the sensor!
                 try
@@ -246,46 +245,8 @@ namespace wally
                                 currentLine.Points.Add(Point1);
                             }
 
-                      // Changing of stroke color with the left hand
-
-                            double leftHandY = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).Y;
-                            double leftHandX = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).X;
-                            double windowHeight = this.ActualHeight;
-                            double windowWidth = this.ActualWidth;
-                            double xCoordPart = windowWidth / 5; //Area for Colorselection
-                            double yCoordSteps = windowHeight / 4; //amount of colors used, currently 4 
-
-
-                            // LeftHand moves to position "BlueColor". 
-                            // If blue is NOT already the color, a new blue line is started.
-
-                            if (leftHandX < xCoordPart) {
-                                colorChangingMode = true;
-                            }
-                            else if (leftHandX >= xCoordPart) {
-                                colorChangingMode = false;
-                            }
-
-                            if (colorChangingMode)
-                            {
-
-                                if (leftHandY > 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Blue)
-                                {
-                                    DrawLine(System.Windows.Media.Brushes.Blue, currentLine.StrokeThickness);
-                                }
-                                if (leftHandY > 2 * yCoordSteps && leftHandY < 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Red)
-                                {
-                                    DrawLine(System.Windows.Media.Brushes.Red, currentLine.StrokeThickness);
-                                }
-                                if (leftHandY > yCoordSteps && leftHandY < 2 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Yellow)
-                                {
-                                    DrawLine(System.Windows.Media.Brushes.Yellow, currentLine.StrokeThickness);
-                                }
-                                if (leftHandY > 0 && leftHandY < yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.White)
-                                {
-                                    DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
-                                }
-                            }
+                        // Changing of stroke color with the left hand
+                            ColorSelection(skel);
 
                         }
 
@@ -304,6 +265,50 @@ namespace wally
 
                 this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderWidth, RenderHeight));
             }
+        }
+
+        /// <summary>
+        /// Manage the selection of different colors
+        /// </summary>
+        private void ColorSelection(Skeleton skel) {
+
+            double leftHandY = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).Y;
+            double leftHandX = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).X;
+            double windowHeight = this.ActualHeight;
+            double windowWidth = this.ActualWidth;
+            double xCoordPart = windowWidth / 5; //Area for Colorselection
+            double yCoordSteps = windowHeight / 4; //amount of colors used, currently 4 
+
+            if (leftHandX < xCoordPart)
+            {
+                colorChangingMode = true;
+            }
+            else if (leftHandX >= xCoordPart)
+            {
+                colorChangingMode = false;
+            }
+
+            if (colorChangingMode)
+            {
+
+                if (leftHandY > 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Blue)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Blue, currentLine.StrokeThickness);
+                }
+                if (leftHandY > 2 * yCoordSteps && leftHandY < 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Red)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Red, currentLine.StrokeThickness);
+                }
+                if (leftHandY > yCoordSteps && leftHandY < 2 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Yellow)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Yellow, currentLine.StrokeThickness);
+                }
+                if (leftHandY > 0 && leftHandY < yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.White)
+                {
+                    DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
+                }
+            }
+        
         }
 
         /// <summary>
@@ -382,6 +387,7 @@ namespace wally
             currentLine = newLine;
         }
 
+
         /// <summary>
         /// Maps a SkeletonPoint to lie within our render space and converts to Point
         /// </summary>
@@ -394,6 +400,8 @@ namespace wally
             DepthImagePoint depthPoint = this.sensor.CoordinateMapper.MapSkeletonPointToDepthPoint(skelpoint, DepthImageFormat.Resolution640x480Fps30);
             return new Point(depthPoint.X, depthPoint.Y);
         }
+
+
 
         /// <summary>
         /// Draws a bone line between two joints
@@ -479,5 +487,6 @@ namespace wally
                 }
             }
         }
+
     }
 }
