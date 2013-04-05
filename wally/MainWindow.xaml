@@ -3,6 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Wally" Loaded="WindowLoaded" Closing="WindowClosing">
     <Grid Name="myGrid" Height="480" Width="640">
-        <Image Name="MyImage"></Image>
+        <Image Name="MyImage" Margin="0,-10,0,10"></Image>
+        <Ellipse Margin="10,10,541,384" Stroke="Black" Fill="White" />
+        <Ellipse Margin="10,127,541,267" Stroke="Black" Fill="Yellow" />
+        <Ellipse Margin="10,247,541,147" Stroke="Black" Fill="Red" />
+        <Ellipse Margin="10,362,541,32" Stroke="Black" Fill="Blue" />
+
     </Grid>
 </Window>

@@ -41,6 +41,8 @@ namespace wally
 
         private int currentStroke = 2; //1 = thick 2 = thin
 
+        private bool colorChangingMode = false;
+
         private ArrayList myPonyLines;
 
         //Thickness of drawn joint lines and of body center elipse
@@ -104,24 +106,24 @@ namespace wally
             }
 
             /// MUTEX Zeuchs
-            System.Collections.ArrayList processes = new System.Collections.ArrayList();
-            for (int i = 0; i < this.DeviceCount; i++)
-            {
-                Process p = new System.Diagnostics.Process();
-                p.StartInfo.CreateNoWindow = true;
-                p.StartInfo.FileName
-                  = Environment.CurrentDirectory + "\\ConsoleApplication1.exe";
-                p.StartInfo.WindowStyle
-                  = System.Diagnostics.ProcessWindowStyle.Normal;
-                p.Start();
-                processes.Add(p);
-            }
+            //System.Collections.ArrayList processes = new System.Collections.ArrayList();
+            //for (int i = 0; i < this.DeviceCount; i++)
+            //{
+            //    Process p = new System.Diagnostics.Process();
+            //    p.StartInfo.CreateNoWindow = true;
+            //    p.StartInfo.FileName
+            //      = Environment.CurrentDirectory + "\\ConsoleApplication1.exe";
+            //    p.StartInfo.WindowStyle
+            //      = System.Diagnostics.ProcessWindowStyle.Normal;
+            //    p.Start();
+            //    processes.Add(p);
+            //}
 
-            var mappedfileThread = new Thread(MemoryMapData);
-            mappedfileThread.SetApartmentState(ApartmentState.STA);
-            mappedfileThread.Start();
+            //var mappedfileThread = new Thread(MemoryMapData);
+            //mappedfileThread.SetApartmentState(ApartmentState.STA);
+            //mappedfileThread.Start();
 
-            Console.WriteLine("created MutexThread");
+            //Console.WriteLine("created MutexThread");
 
 
             if (null != this.sensor)
@@ -206,9 +208,9 @@ namespace wally
 
                             //As long as the hand is nearer to the screen than the user's body -> painting 
                             //As soon as the hand is further away from the screen than the user's body (or the same level) -> not painting
-                            if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z && currentLine.Points.Count > 1)
+                            if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.1 && currentLine.Points.Count > 1)
                             {
-                                DrawLine(System.Windows.Media.Brushes.White, 5);
+                                DrawLine(currentLine.Stroke, 5);
                             }
 
                             //When the hand is near to the screen (if-case) the line gets thicker
@@ -217,7 +219,7 @@ namespace wally
                             {
                                 if (currentStroke == 2)
                                 {
-                                    DrawLine(System.Windows.Media.Brushes.White, 20);
+                                    DrawLine(currentLine.Stroke, 20);
                                     currentStroke = 1;
                                 }
                                 else
@@ -230,7 +232,7 @@ namespace wally
                             {
                                 if (currentStroke == 1)
                                 {
-                                    DrawLine(System.Windows.Media.Brushes.White, 5);
+                                    DrawLine(currentLine.Stroke, 5);
                                     currentStroke = 2;
                                 }
                                 else
@@ -244,36 +246,46 @@ namespace wally
                                 currentLine.Points.Add(Point1);
                             }
 
-                            //Polyline currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
+                      // Changing of stroke color with the left hand
 
-                            //double leftHandY = skel.Joints[JointType.HandLeft].Position.Y;
-                            //SolidColorBrush color = System.Windows.Media.Brushes.Blue;
+                            double leftHandY = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).Y;
+                            double leftHandX = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).X;
+                            double windowHeight = this.ActualHeight;
+                            double windowWidth = this.ActualWidth;
+                            double xCoordPart = windowWidth / 5; //Area for Colorselection
+                            double yCoordSteps = windowHeight / 4; //amount of colors used, currently 4 
 
-                            //Console.WriteLine(Point1);
 
-                            //if (leftHandY > 0)
-                            //{
-                            //    color = System.Windows.Media.Brushes.Red;
-                            //}
-                            //currentLine.Stroke = color;
+                            // LeftHand moves to position "BlueColor". 
+                            // If blue is NOT already the color, a new blue line is started.
 
-                            //if (currentLine.Points.Count > 100)
-                            //{
-                            //    Random random = new Random();
-                            //    int randomNumber = random.Next(1, 10);
-                            //    Polyline newLine = new Polyline();
-                            //    newLine.Stroke = System.Windows.Media.Brushes.White;
-                            //    newLine.StrokeThickness = randomNumber;
-                            //    newLine.FillRule = FillRule.EvenOdd;
-                            //    newLine.StrokeStartLineCap = PenLineCap.Round;
-                            //    newLine.StrokeEndLineCap = PenLineCap.Round;
-                            //    myPonyLines.Add(newLine);
-                            //    myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
-                            //    currentLine = newLine;
-                            //}
+                            if (leftHandX < xCoordPart) {
+                                colorChangingMode = true;
+                            }
+                            else if (leftHandX >= xCoordPart) {
+                                colorChangingMode = false;
+                            }
 
-                            //currentLine.Points.Add(Point1);
+                            if (colorChangingMode)
+                            {
 
+                                if (leftHandY > 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Blue)
+                                {
+                                    DrawLine(System.Windows.Media.Brushes.Blue, currentLine.StrokeThickness);
+                                }
+                                if (leftHandY > 2 * yCoordSteps && leftHandY < 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Red)
+                                {
+                                    DrawLine(System.Windows.Media.Brushes.Red, currentLine.StrokeThickness);
+                                }
+                                if (leftHandY > yCoordSteps && leftHandY < 2 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Yellow)
+                                {
+                                    DrawLine(System.Windows.Media.Brushes.Yellow, currentLine.StrokeThickness);
+                                }
+                                if (leftHandY > 0 && leftHandY < yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.White)
+                                {
+                                    DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
+                                }
+                            }
 
                         }
 
@@ -356,7 +368,7 @@ namespace wally
         /// </summary>
         /// <param name="lineColor">Color for the new line</param>
         /// <param name="lineThickness">Thickness of the new line</param>
-        private void DrawLine(System.Windows.Media.Brush lineColor, int lineThickness)
+        private void DrawLine(System.Windows.Media.Brush lineColor, double lineThickness)
         {
 
             currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
