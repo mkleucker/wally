@@ -19,6 +19,7 @@ using System.Globalization;
 using System.Diagnostics;
 using System.Threading;
 using wally;
+using System.IO.MemoryMappedFiles;
 
 
 namespace wally
@@ -29,6 +30,7 @@ namespace wally
     public partial class MainWindow : Window
     {
 
+        private static int Runs = 0;
         //Width and Height of our drawing output
         private const float RenderWidth = 640.0f;
         private const float RenderHeight = 480.0f;
@@ -60,6 +62,13 @@ namespace wally
         private DrawingImage imageSource; //draw image that we will display
 
 
+        // Mutex
+        static long MemoryMappedFileCapacitySkeleton = 168; //10MB in Byte
+        static Mutex mutex1;
+        static MemoryMappedFile file1;
+
+        private int[] mmf_ints;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -72,6 +81,7 @@ namespace wally
         //Execute startup tasks here
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
+            mmf_ints = new int[6];
 
             this.myPonyLines = new ArrayList();
 
@@ -107,9 +117,9 @@ namespace wally
                 processes.Add(p);
             }
 
-            MutexControl mutexCtrl = new MutexControl();
-            var mutexThread = new Thread(mutexCtrl.mtThreading);
-            mutexThread.Start();
+            var mappedfileThread = new Thread(MemoryMapData);
+            mappedfileThread.SetApartmentState(ApartmentState.STA);
+            mappedfileThread.Start();
 
             Console.WriteLine("created MutexThread");
 
@@ -417,5 +427,45 @@ namespace wally
             }
         }
 
+        private void MemoryMapData()
+        {
+            /*Create MemoryMappedfile for Kinect Data Exchange */
+            var file1 = MemoryMappedFile.CreateNew(
+            "SkeletonExchange", MemoryMappedFileCapacitySkeleton);
+
+            /*Mutual Exclusion between 3 processes*/
+            var mutex = new Mutex(true, "mappedfilemutex");
+            mutex.ReleaseMutex(); //Freigabe gleich zu Beginn
+
+            using (var accessor = file1.CreateViewAccessor())
+            {
+
+                int[] ints = new int[6];
+
+                for (; ; ) /*Skeleton-Receive Loop*/
+                {
+                    DateTime before = DateTime.Now;
+                    mutex.WaitOne();
+
+                    try
+                    {
+                        accessor.ReadArray(
+                           0, mmf_ints, 0, ints.Length);
+                        Array.Copy(mmf_ints, 0,
+                           ints, 0, mmf_ints.Length);
+                        mutex.ReleaseMutex();
+
+                        Console.WriteLine(mmf_ints[0]);
+
+                        DateTime after = DateTime.Now;
+                        int delay = after.Millisecond - before.Millisecond;
+                        int fill = 10 - delay;
+                        if (fill > 0) Thread.Sleep(fill);
+
+                    }
+                    catch (Exception ex) { }
+                }
+            }
+        }
     }
 }

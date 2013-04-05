@@ -9,8 +9,13 @@ namespace wally
 {
     public class MutexControl
     {
-        public MutexControl()
+        private MainWindow parent;
+        private static int Runs = 0;
+
+        public MutexControl(MainWindow parent)
         {
+            this.parent = parent;
+
 
         }
 
@@ -24,7 +29,8 @@ namespace wally
                 mutex.WaitOne();
                 try
                 {
-                    //Critical Section
+                    Runs++;
+                    Console.WriteLine(Runs);
                 }
                 catch (Exception ex) { }
                 mutex.ReleaseMutex();
