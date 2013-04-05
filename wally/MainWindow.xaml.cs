@@ -108,6 +108,7 @@ namespace wally
                 myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
 
 
+
                 //Add an event handler to be called whenever there is new skeleton frame...
                 this.sensor.SkeletonFrameReady += this.SkeletonFrameReady;
 
@@ -309,7 +310,11 @@ namespace wally
             }
         }
 
-
+        /// <summary>
+        /// Creates a new line object.
+        /// </summary>
+        /// <param name="lineColor">Color for the new line</param>
+        /// <param name="lineThickness">Thickness of the new line</param>
         private void DrawLine(System.Windows.Media.Brush lineColor, int lineThickness)
         {
 
