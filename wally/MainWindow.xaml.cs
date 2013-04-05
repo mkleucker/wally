@@ -17,6 +17,8 @@ using Microsoft.Kinect;
 using System.IO;
 using System.Globalization;
 using System.Diagnostics;
+using System.Threading;
+using wally;
 
 
 namespace wally
@@ -91,6 +93,7 @@ namespace wally
                 }
             }
 
+            /// MUTEX Zeuchs
             System.Collections.ArrayList processes = new System.Collections.ArrayList();
             for (int i = 0; i < this.DeviceCount; i++)
             {
@@ -103,6 +106,13 @@ namespace wally
                 p.Start();
                 processes.Add(p);
             }
+
+            MutexControl mutexCtrl = new MutexControl();
+            var mutexThread = new Thread(mutexCtrl.mtThreading);
+            mutexThread.Start();
+
+            Console.WriteLine("created MutexThread");
+
 
             if (null != this.sensor)
             {
@@ -143,7 +153,7 @@ namespace wally
         }
 
         /// <summary>
-        /// 
+        /// Skeleton
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
