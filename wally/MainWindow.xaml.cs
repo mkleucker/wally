@@ -16,6 +16,8 @@ using System.Windows.Shapes;
 using Microsoft.Kinect;
 using System.IO;
 using System.Globalization;
+using System.Diagnostics;
+
 
 namespace wally
 {
@@ -49,6 +51,7 @@ namespace wally
         private readonly Pen inferredBonePen = new Pen(Brushes.Gray, 1); // to draw inferred bones
 
         private KinectSensor sensor;
+        private int DeviceCount;
 
         private DrawingGroup drawingGroup; //for skeleton rendering output
 
@@ -70,6 +73,8 @@ namespace wally
 
             this.myPonyLines = new ArrayList();
 
+            this.DeviceCount = KinectSensor.KinectSensors.Count;
+
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
 
@@ -84,6 +89,19 @@ namespace wally
                     this.sensor = potentialSensor;
                     break;
                 }
+            }
+
+            System.Collections.ArrayList processes = new System.Collections.ArrayList();
+            for (int i = 0; i < this.DeviceCount; i++)
+            {
+                Process p = new System.Diagnostics.Process();
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.FileName
+                  = Environment.CurrentDirectory + "\\ConsoleApplication1.exe";
+                p.StartInfo.WindowStyle
+                  = System.Diagnostics.ProcessWindowStyle.Normal;
+                p.Start();
+                processes.Add(p);
             }
 
             if (null != this.sensor)
