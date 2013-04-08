@@ -360,6 +360,46 @@ namespace wally
         }
 
         /// <summary>
+        /// Saves the drawn lines as a png-File to improve performance
+        /// </summary>
+        private void SaveLinesAsImage()
+        {
+
+            RenderTargetBitmap targetBitmap = new RenderTargetBitmap((int)myCanvas.ActualWidth,
+
+                             (int)myCanvas.ActualHeight,
+
+                             96d, 96d,
+
+                             PixelFormats.Default);
+
+            targetBitmap.Render(myCanvas);
+            
+            // create a png bitmap encoder which knows how to save a .png file
+            BitmapEncoder encoder = new PngBitmapEncoder();
+
+            // create frame from the writable bitmap and add to encoder
+            encoder.Frames.Add(BitmapFrame.Create(targetBitmap));
+
+            //only filename construction
+            string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
+            string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures); //Eigene Dateien->Bilder
+            string path = System.IO.Path.Combine(myPhotos, "KinectSnapshot-" + time + ".png");
+
+            // write the new file to disk
+            try
+            {
+                using (FileStream fs = new FileStream(path, FileMode.Create))
+                {
+                    encoder.Save(fs);
+                }
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        /// <summary>
         /// Manage the selection of different colors
         /// </summary>
         private void ColorSelection(Skeleton skel) {
@@ -467,6 +507,9 @@ namespace wally
         /// <param name="lineThickness">Thickness of the new line</param>
         private void DrawLine(System.Windows.Media.Brush lineColor, double lineThickness)
         {
+            if (myPonyLines.Count > 10) {
+                SaveLinesAsImage();
+            }
 
             currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
             Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
@@ -475,7 +518,7 @@ namespace wally
             newLine.Stroke = lineColor;
             newLine.StrokeThickness = lineThickness;
             myPonyLines.Add(newLine);
-            myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
+            myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
             currentLine = newLine;
         }
 
