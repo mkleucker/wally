@@ -323,7 +323,7 @@ namespace wally
                             ////    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
                             ////    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
 
-                         //   AnimateColors(this.SkeletonPointToScreen(skel.Position));
+                           // AnimateColors(this.SkeletonPointToScreen(skel.Position));
 
                             System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
 
@@ -432,19 +432,30 @@ namespace wally
 
         ///// <summary>
         ///// Animate the "Paintbuckets" to stay near the user
-        ///// #####Currently not in use !!!
         ///// </summary>
-        //private void AnimateColors(Point newPosition) {
-        //    var whiteBucket = new Ellipse();
-        //    ColorCanvas.Children.Remove(whiteBucket);
-        //    whiteBucket.Width = 100;
-        //    whiteBucket.Height = 100;
-        //    whiteBucket.Stroke = new SolidColorBrush(Colors.White);
-        //    whiteBucket.Fill = new SolidColorBrush(Colors.White);
-        //    whiteBucket.SetValue(Canvas.TopProperty, (newPosition.Y - 100));
-        //    whiteBucket.SetValue(Canvas.LeftProperty, (newPosition.X - 100));
-        //    ColorCanvas.Children.Add(whiteBucket);
-        //}
+        private void AnimateColors(Point newPosition)
+        {
+            // Create a new animation with start and end values, duration and
+            // an optional completion handler.
+            DoubleAnimation da = new DoubleAnimation();
+            da.From = 0;
+            da.To = (newPosition.X - 200);
+            da.Duration = new Duration(TimeSpan.FromSeconds(1));
+            //da.Completed += new EventHandler(animationCompleted); // easy syntax without parameters
+            da.Completed += (sender, eArgs) => animationCompleted(ColorCanvas, newPosition); // syntax with parameters
+
+            // Start animating the x-translation 
+            TranslateTransform rt = new TranslateTransform();
+            ColorCanvas.RenderTransform = rt;
+            rt.BeginAnimation(TranslateTransform.XProperty, da);
+        }
+
+        // Implement this method
+        private void animationCompleted(Canvas myCanvas, Point newPosition)
+        {
+            myCanvas.Margin = new Thickness((newPosition.X - 200), 0, 0, 0);
+                // = (int)newPosition.X;
+        }
 
         /// <summary>
         /// Manage the selection of different colors
