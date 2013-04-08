@@ -20,8 +20,8 @@ using System.Diagnostics;
 using System.Threading;
 using wally;
 using System.IO.MemoryMappedFiles;
-
-
+using System.Windows.Media.Animation;
+using System.Timers;
 namespace wally
 {
     /// <summary>
@@ -39,6 +39,11 @@ namespace wally
         //Line that is drawn by right hand of the user
         private Polyline myPolyline;
         private Polyline currentLine;
+
+        //Timer for 60sec of painting
+        int timerValue;
+
+        private String lastPngImage;
 
         private int currentStroke = 2; //1 = thick 2 = thin
 
@@ -149,6 +154,12 @@ namespace wally
 
             this.DeviceCount = KinectSensor.KinectSensors.Count;
 
+           /* System.Timers.Timer thisTimer = new System.Timers.Timer();
+            thisTimer.Elapsed += new ElapsedEventHandler(CountDownClock);
+            thisTimer.Interval = 1000; // 1000 ms is one second
+            thisTimer.Start();*/
+
+
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
             MyImage.Source = this.imageSource; //display the drawing to use our image control
@@ -218,7 +229,7 @@ namespace wally
                 myPolyline.FillRule = FillRule.EvenOdd;
                 myPonyLines.Add(myPolyline);
                 currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-                myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
+                myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
 
                 //Add an event handler to be called whenever there is new skeleton frame...
                 this.sensor.SkeletonFrameReady += this.SkeletonFrameReady;
@@ -255,6 +266,23 @@ namespace wally
             }
         }
 
+
+        ///// <summary>
+        ///// Timer counting down 60 seconds
+        ///// </summary>
+        //private void CountDownClock(object sender, ElapsedEventArgs e)
+        //{
+        //    String timerText = timerValue.ToString();
+        //   TextBlock myTimer =  new TextBlock();
+        //     myTimer.Height = 50;
+        //     myTimer.Width = 200;
+        //     myTimer.Text = timerText;
+        //     myTimer.Foreground = new SolidColorBrush(Colors.Black);
+        //     myCanvas.Children.Add(myTimer);
+        //     timerValue--;
+        //}
+
+
         /// <summary>
         /// Skeleton
         /// </summary>
@@ -287,13 +315,15 @@ namespace wally
                         {
 
 
-                            this.DrawBonesAndJoints(skel, dc);
-                            dc.DrawEllipse(
-                                this.centerPointBrush,
-                                null,
-                                this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position),
-                                BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
-                                BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
+                           // this.DrawBonesAndJoints(skel, dc);
+                            ////dc.DrawEllipse(
+                            ////    this.centerPointBrush,
+                            ////    null,
+                            ////    this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position),
+                            ////    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
+                            ////    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
+
+                         //   AnimateColors(this.SkeletonPointToScreen(skel.Position));
 
                             System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
 
@@ -345,12 +375,12 @@ namespace wally
 
                         else if (skel.TrackingState == SkeletonTrackingState.PositionOnly)
                         {
-                            dc.DrawEllipse(
-                            this.centerPointBrush,
-                            null,
-                            this.SkeletonPointToScreen(skel.Position),
-                            BodyCenterThickness,
-                            BodyCenterThickness);
+                            //dc.DrawEllipse(
+                            //this.centerPointBrush,
+                            //null,
+                            //this.SkeletonPointToScreen(skel.Position),
+                            //BodyCenterThickness,
+                            //BodyCenterThickness);
                         }
                     }
                 }
@@ -385,6 +415,7 @@ namespace wally
             string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
             string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures); //Eigene Dateien->Bilder
             string path = System.IO.Path.Combine(myPhotos, "KinectSnapshot-" + time + ".png");
+            lastPngImage = path;
 
             // write the new file to disk
             try
@@ -398,6 +429,22 @@ namespace wally
             {
             }
         }
+
+        ///// <summary>
+        ///// Animate the "Paintbuckets" to stay near the user
+        ///// #####Currently not in use !!!
+        ///// </summary>
+        //private void AnimateColors(Point newPosition) {
+        //    var whiteBucket = new Ellipse();
+        //    ColorCanvas.Children.Remove(whiteBucket);
+        //    whiteBucket.Width = 100;
+        //    whiteBucket.Height = 100;
+        //    whiteBucket.Stroke = new SolidColorBrush(Colors.White);
+        //    whiteBucket.Fill = new SolidColorBrush(Colors.White);
+        //    whiteBucket.SetValue(Canvas.TopProperty, (newPosition.Y - 100));
+        //    whiteBucket.SetValue(Canvas.LeftProperty, (newPosition.X - 100));
+        //    ColorCanvas.Children.Add(whiteBucket);
+        //}
 
         /// <summary>
         /// Manage the selection of different colors
@@ -423,19 +470,19 @@ namespace wally
             if (colorChangingMode)
             {
 
-                if (leftHandY > 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Blue)
+                if (leftHandY >= 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Blue)
                 {
                     DrawLine(System.Windows.Media.Brushes.Blue, currentLine.StrokeThickness);
                 }
-                if (leftHandY > 2 * yCoordSteps && leftHandY < 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Red)
+                if (leftHandY >= 2 * yCoordSteps && leftHandY < 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Red)
                 {
                     DrawLine(System.Windows.Media.Brushes.Red, currentLine.StrokeThickness);
                 }
-                if (leftHandY > yCoordSteps && leftHandY < 2 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Yellow)
+                if (leftHandY >= yCoordSteps && leftHandY < 2 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Yellow)
                 {
                     DrawLine(System.Windows.Media.Brushes.Yellow, currentLine.StrokeThickness);
                 }
-                if (leftHandY > 0 && leftHandY < yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.White)
+                if (leftHandY >= 0 && leftHandY < yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.White)
                 {
                     DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
                 }
@@ -507,19 +554,46 @@ namespace wally
         /// <param name="lineThickness">Thickness of the new line</param>
         private void DrawLine(System.Windows.Media.Brush lineColor, double lineThickness)
         {
-            if (myPonyLines.Count > 10) {
+
+            System.Console.WriteLine(myPonyLines.Count);
+            if (myPonyLines.Count > 20) {
                 SaveLinesAsImage();
+                // Create new image and set source path
+                Image image = new Image();
+                image.Source = new BitmapImage(new Uri(lastPngImage));
+
+                // Place image 
+                image.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                image.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                image.Margin = new Thickness(0, 0, 0, 0); // origin
+                myCanvas.Children.Add(image); // MainGrid is defined in xaml
+
+                for (int i = 0; i < myPonyLines.Count - 1; i++) {
+                    myCanvas.Children.Remove((Polyline)myPonyLines[i]);
+                }
+                myPonyLines.Clear();
+
+                myPolyline = new Polyline();
+                myPolyline.Stroke = System.Windows.Media.Brushes.White;
+                myPolyline.StrokeThickness = 2;
+                myPolyline.FillRule = FillRule.EvenOdd;
+                myPonyLines.Add(myPolyline);
+                currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
+                myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
             }
 
-            currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-            Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
-            Console.WriteLine("Number of Lines:" + myPonyLines.Count);
-            Polyline newLine = new Polyline();
-            newLine.Stroke = lineColor;
-            newLine.StrokeThickness = lineThickness;
-            myPonyLines.Add(newLine);
-            myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
-            currentLine = newLine;
+            else {
+         
+                currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
+                Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
+                Console.WriteLine("Number of Lines:" + myPonyLines.Count);
+                Polyline newLine = new Polyline();
+                newLine.Stroke = lineColor;
+                newLine.StrokeThickness = lineThickness;
+                myPonyLines.Add(newLine);
+                myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
+                currentLine = newLine; 
+            }
         }
 
 
@@ -578,7 +652,7 @@ namespace wally
         {
             if (null != this.sensor)
             {
-                this.sensor.Stop();
+               // this.sensor.Stop();
             }
         }
 
@@ -719,6 +793,11 @@ namespace wally
             // so that we return resources to the kinect as soon as possible
             if (true == colorReceived)
             {
+
+                for (int i = 0; i < colorPixels.Length - 1; i++) {
+                    colorPixels[i] = 0x77;
+                } 
+                
                 // Write the pixel data into our bitmap
                 this.colorBitmap.WritePixels(
                     new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight),
