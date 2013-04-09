@@ -37,7 +37,7 @@ namespace wally
     {
 
         private static int Runs = 0;
-       
+
         //Width and Height of our drawing output
         private const float RenderWidth = 640.0f;
         private const float RenderHeight = 480.0f;
@@ -87,7 +87,7 @@ namespace wally
         ///// Format we will use for the color stream
         ///// </summary>
         //private const ColorImageFormat ColorFormat = ColorImageFormat.RgbResolution640x480Fps30;
-        
+
         ///// <summary>
         ///// Bitmap that will hold color information
         ///// </summary>
@@ -351,14 +351,16 @@ namespace wally
         /// </summary>
         /// <param name="myCanvas">Canvas that is animated, containing the paintbucket ellipses</param>
         /// <param name="newPosition">Position of the Skeleton, to attach Paintbuckets to it </param>
-        private void animationCompleted(Canvas myCanvas, Point newPosition) {
-                myCanvas.Margin = new Thickness((newPosition.X - 200), 0, 0, 0);
+        private void animationCompleted(Canvas myCanvas, Point newPosition)
+        {
+            myCanvas.Margin = new Thickness((newPosition.X - 200), 0, 0, 0);
         }
 
         /// <summary>
         /// Manage the selection of different colors
         /// </summary>
-        private void ColorSelection(Skeleton skel) {
+        private void ColorSelection(Skeleton skel)
+        {
 
             double leftHandY = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).Y;
             double leftHandX = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).X;
@@ -370,11 +372,11 @@ namespace wally
             if (leftHandX < xCoordPart)
             {
                 colorChangingMode = true;
-                    }
+            }
             else if (leftHandX >= xCoordPart)
             {
                 colorChangingMode = false;
-                }
+            }
 
             if (colorChangingMode)
             {
@@ -396,10 +398,11 @@ namespace wally
                     DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
                 }
             }
-        
+
         }
 
-        private void Painting() {
+        private void Painting()
+        {
 
 
             foreach (Skeleton skel in this.skelData)
@@ -543,7 +546,8 @@ namespace wally
         {
 
             System.Console.WriteLine(myPonyLines.Count);
-            if (myPonyLines.Count > 20) {
+            if (myPonyLines.Count > 20)
+            {
                 SaveLinesAsImage();
                 // Create new image and set source path
                 Image image = new Image();
@@ -555,7 +559,8 @@ namespace wally
                 image.Margin = new Thickness(0, 0, 0, 0); // origin
                 myCanvas.Children.Add(image); // MainGrid is defined in xaml
 
-                for (int i = 0; i < myPonyLines.Count - 1; i++) {
+                for (int i = 0; i < myPonyLines.Count - 1; i++)
+                {
                     myCanvas.Children.Remove((Polyline)myPonyLines[i]);
                 }
                 myPonyLines.Clear();
@@ -569,8 +574,9 @@ namespace wally
                 myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
             }
 
-            else {
-         
+            else
+            {
+
                 currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
                 Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
                 Console.WriteLine("Number of Lines:" + myPonyLines.Count);
@@ -580,7 +586,7 @@ namespace wally
                 myPonyLines.Add(newLine);
                 myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
                 currentLine = newLine;
-             }
+            }
         }
 
 
@@ -695,7 +701,7 @@ namespace wally
                     for (int i = 0; i < this.skelAccess.GetLength(0); i++)
                     {
                         for (int j = 0; j < 2; j++)
-                {
+                        {
                             MemoryMappedViewAccessor accessor = this.skelAccess[i, j];
                             byte[] temp = new byte[mmf_result.Length];
 
@@ -711,8 +717,8 @@ namespace wally
 
                             if (!empty)
                             {
-                    try
-                    {
+                                try
+                                {
                                     BinaryFormatter bf = new BinaryFormatter();
                                     MemoryStream ms = new MemoryStream(mmf_result);
                                     Skeleton skelNew = (Skeleton)bf.Deserialize(ms);
@@ -740,10 +746,10 @@ namespace wally
 
                 }
                 // TIMEOUT
-                        DateTime after = DateTime.Now;
-                        int delay = after.Millisecond - before.Millisecond;
+                DateTime after = DateTime.Now;
+                int delay = after.Millisecond - before.Millisecond;
                 int fill = 100 - delay;
-                        if (fill > 0) Thread.Sleep(fill);
+                if (fill > 0) Thread.Sleep(fill);
 
                 // After all: REPAINT TIME!!!
                 Dispatcher.Invoke(DispatcherPriority.Send,
@@ -771,11 +777,11 @@ namespace wally
 
                     this.skelFiles[p, i] = skelFileTmp;
                     this.skelAccess[p, i] = skelFileTmp.CreateViewAccessor();
-                    }
+                }
 
                 // ... more Memory Files for other Channels.
-                }
             }
+        }
 
 
 
@@ -887,7 +893,7 @@ namespace wally
         //        for (int i = 0; i < colorPixels.Length - 1; i++) {
         //            colorPixels[i] = 0x77;
         //        } 
-                
+
         //        // Write the pixel data into our bitmap
         //        this.colorBitmap.WritePixels(
         //            new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight),
