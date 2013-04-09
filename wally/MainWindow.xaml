@@ -6,9 +6,9 @@
     <Grid x:Name="myGrid" Height="480" Width="640">
         
         <Canvas x:Name="myCanvas">
-            <!--<TextBlock Text="You have 60 seconds" FontSize="40" Canvas.Left="188"/>-->
             <Image x:Name="MyImage"/>
         </Canvas>
+        <TextBlock x:Name ="myTimer" FontSize="40" Canvas.Left="558" Foreground="White" Margin="580,0,0,0"/>
         <Image x:Name="MaskedColor" Opacity="0.5"/>
 
         <Canvas x:Name="ColorCanvas">

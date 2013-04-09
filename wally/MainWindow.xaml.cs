@@ -46,8 +46,7 @@ namespace wally
         private Polyline myPolyline;
         private Polyline currentLine;
 
-        //Timer for 60sec of painting
-        int timerValue;
+        private bool PaintingTimeOver = false;
 
         private String lastPngImage;
 
@@ -181,11 +180,9 @@ namespace wally
 
             this.DeviceCount = KinectSensor.KinectSensors.Count;
 
-            //System.Timers.Timer thisTimer = new System.Timers.Timer();
-            //thisTimer.Elapsed += new ElapsedEventHandler(CountDownClock);
-            //thisTimer.Interval = 1000; // 1000 ms is one second
-            //thisTimer.Start();
 
+            Dispatcher.Invoke(DispatcherPriority.Send,
+                            new Action(PaintingTimer));
 
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
@@ -271,21 +268,41 @@ namespace wally
 
         }
 
+        private void PaintingTimer() {
+            CountDownClock(60, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
+        }
 
         ///// <summary>
         ///// Timer counting down 60 seconds
         ///// </summary>
-        //private void CountDownClock(object sender, ElapsedEventArgs e)
-        //{
-        //    String timerText = timerValue.ToString();
-        //   TextBlock myTimer =  new TextBlock();
-        //     myTimer.Height = 50;
-        //     myTimer.Width = 200;
-        //     myTimer.Text = timerText;
-        //     myTimer.Foreground = new SolidColorBrush(Colors.Black);
-        //     myCanvas.Children.Add(myTimer);
-        //     timerValue--;
-        //}
+        private void CountDownClock(int count, TimeSpan interval, Action<int> ts)
+        {
+            var dispatchTimer = new System.Windows.Threading.DispatcherTimer();
+            dispatchTimer.Interval = interval;
+            dispatchTimer.Tick += (_, a) =>
+            {
+                if (count-- == 0)
+                {
+                    PaintingTimeOver = true;
+                    dispatchTimer.Stop();
+                }
+                else
+                {
+                    ts(count);
+                }
+            };
+            ts(count);
+            dispatchTimer.Start();
+        
+            //String timerText = timerValue.ToString();
+            //TextBlock myTimer = new TextBlock();
+            //myTimer.Height = 50;
+            //myTimer.Width = 200;
+            //myTimer.Text = timerText;
+            //myTimer.Foreground = new SolidColorBrush(Colors.Black);
+            //myCanvas.Children.Add(myTimer);
+            //timerValue--;
+        }
 
         /// <summary>
         /// Saves the drawn lines as a png-File to improve performance
@@ -336,7 +353,7 @@ namespace wally
             DoubleAnimation da = new DoubleAnimation();
             da.From = 0;
             da.To = (newPosition.X - 200);
-            da.Duration = new Duration(TimeSpan.FromSeconds(1));
+           // da.Duration = new Duration(TimeSpan.FromSeconds(1));
             //da.Completed += new EventHandler(animationCompleted); // easy syntax without parameters
             da.Completed += (sender, eArgs) => animationCompleted(ColorCanvas, newPosition); // syntax with parameters
 
@@ -408,52 +425,59 @@ namespace wally
             foreach (Skeleton skel in this.skelData)
             {
 
-                // AnimateColors(this.SkeletonPointToScreen(skel.Position));
-
-                System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
-
-                //As long as the hand is nearer to the screen than the user's body -> painting 
-                //As soon as the hand is further away from the screen than the user's body (or the same level) -> not painting
-                if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.1 && currentLine.Points.Count > 1)
+                if (skel.Position.Z > 0.7 && skel.Position.Z <= 2.0)
                 {
-                    DrawLine(currentLine.Stroke, 5);
-                }
 
-                //When the hand is near to the screen (if-case) the line gets thicker
+                    // AnimateColors(this.SkeletonPointToScreen(skel.Position));
 
-                if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.8 && skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.3 && currentLine.Points.Count > 1)
-                {
-                    if (currentStroke == 2)
-                    {
-                        DrawLine(currentLine.Stroke, 20);
-                        currentStroke = 1;
-                    }
-                    else
-                        currentLine.StrokeThickness = 20;
+                    System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
 
-                }
-
-                //When the hand is further away from the screen (else if - case) the line gets thinner
-                else if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.3 && currentLine.Points.Count > 1)
-                {
-                    if (currentStroke == 1)
+                    //As long as the hand is nearer to the screen than the user's body -> painting 
+                    //As soon as the hand is further away from the screen than the user's body  -> not painting
+                    if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.1 && currentLine.Points.Count > 1)
                     {
                         DrawLine(currentLine.Stroke, 5);
-                        currentStroke = 2;
                     }
-                    else
-                        currentLine.StrokeThickness = 5;
 
+                    //When the hand is near to the screen (if-case) the line gets thicker
+
+                    if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.8 
+                        && skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.3 
+                        && currentLine.Points.Count > 1)
+                    {
+                        if (currentStroke == 2)
+                        {
+                            DrawLine(currentLine.Stroke, 20);
+                            currentStroke = 1;
+                        }
+                        else
+                            currentLine.StrokeThickness = 20;
+
+                    }
+
+                    //When the hand is further away from the screen (else if - case) the line gets thinner
+                    else if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.3 
+                        && currentLine.Points.Count > 1)
+                    {
+                        if (currentStroke == 1)
+                        {
+                            DrawLine(currentLine.Stroke, 5);
+                            currentStroke = 2;
+                        }
+                        else
+                            currentLine.StrokeThickness = 5;
+
+                    }
+
+
+                    if (skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.1)
+                    {
+                        currentLine.Points.Add(Point1);
+                    }
+
+                    // Changing of stroke color with the left hand
+                    ColorSelection(skel);
                 }
-
-
-                if (skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.1)
-                {
-                    currentLine.Points.Add(Point1);
-                }
-
-                // Changing of stroke color with the left hand
-                ColorSelection(skel);
             }
         }
 
@@ -546,7 +570,7 @@ namespace wally
         {
 
             System.Console.WriteLine(myPonyLines.Count);
-            if (myPonyLines.Count > 20)
+            if (PaintingTimeOver)
             {
                 SaveLinesAsImage();
                 // Create new image and set source path
@@ -866,7 +890,8 @@ namespace wally
 
         //                    // make sure the depth pixel maps to a valid point in color space
         //                    // check y > 0 and y < depthHeight to make sure we don't write outside of the array
-        //                    // check x > 0 instead of >= 0 since to fill gaps we set opaque current pixel plus the one to the left
+        //                    // check x > 0 instead of >= 0 since to fill gaps we set opaque 
+                                // current pixel plus the one to the left
         //                    // because of how the sensor works it is more correct to do it this way than to set to the right
         //                    if (colorInDepthX > 0 && colorInDepthX < this.depthWidth && colorInDepthY >= 0 && colorInDepthY < this.depthHeight)
         //                    {
