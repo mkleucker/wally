@@ -1,12 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Windows Desktop
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wally", "wally\wally.csproj", "{855EE4F4-40CC-4866-B136-FF62F1368295}"
 	ProjectSection(ProjectDependencies) = postProject
 		{C23E50E8-AD8F-47A9-A4CB-BD80ED62E11F} = {C23E50E8-AD8F-47A9-A4CB-BD80ED62E11F}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApplication1", "ConsoleApplication1\ConsoleApplication1.csproj", "{C23E50E8-AD8F-47A9-A4CB-BD80ED62E11F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KincectCommunication", "ConsoleApplication1\KincectCommunication.csproj", "{C23E50E8-AD8F-47A9-A4CB-BD80ED62E11F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

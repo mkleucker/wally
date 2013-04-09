@@ -1,8 +1,12 @@
-﻿<Window x:Class="wally.MainWindow"
+﻿<Window
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="wally.MainWindow"
         Title="Wally" Loaded="WindowLoaded" Closing="WindowClosing">
-    <Grid Name="myGrid" Height="480" Width="640">
-        <Image Name="MyImage"></Image>
+    <Grid x:Name="myGrid" Margin="0,0,120,25">
+        <Image x:Name="MyImage"/>
+        <Canvas>
+            <Ellipse Width="50" Height="50" Fill="Red"/>
+        </Canvas>
     </Grid>
 </Window>

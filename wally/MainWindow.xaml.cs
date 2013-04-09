@@ -20,6 +20,10 @@ using System.Diagnostics;
 using System.Threading;
 using wally;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
+using System.Windows.Threading;
 
 
 namespace wally
@@ -54,7 +58,7 @@ namespace wally
         private readonly Pen trackedBonePen = new Pen(Brushes.Green, 6); // to draw tracked bones
         private readonly Pen inferredBonePen = new Pen(Brushes.Gray, 1); // to draw inferred bones
 
-        private KinectSensor sensor;
+        private ArrayList sensors;
         private int DeviceCount;
 
         private DrawingGroup drawingGroup; //for skeleton rendering output
@@ -63,11 +67,27 @@ namespace wally
 
 
         // Mutex
-        static long MemoryMappedFileCapacitySkeleton = 168; //10MB in Byte
+        static long MemoryMappedFileCapacitySkeleton = 2255; //10MB in Byte
         static Mutex mutex1;
         static MemoryMappedFile file1;
 
+        private byte[] mmf_result;
+
         private int[] mmf_ints;
+
+        // Using Two Kinects
+        private ArrayList processes;
+
+
+        private Skeleton skel;
+
+
+        // INTERNAL DATA STRUCTURE
+
+        private MemoryMappedFile[,] skelFiles;
+        private MemoryMappedViewAccessor[,] skelAccess;
+
+        private ArrayList skelData;
 
         public MainWindow()
         {
@@ -81,6 +101,8 @@ namespace wally
         //Execute startup tasks here
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
+            //int size = ;
+            mmf_result = new byte[MemoryMappedFileCapacitySkeleton];
             mmf_ints = new int[6];
 
             this.myPonyLines = new ArrayList();
@@ -93,19 +115,25 @@ namespace wally
             MyImage.Source = this.imageSource; //display the drawing to use our image control
 
             // Look through all sensors and start the first connected one.
+            this.sensors = new ArrayList();
             foreach (var potentialSensor in KinectSensor.KinectSensors)
             {
                 //Status should e.g. not be "Initializing" or "NotPowered"
                 if (potentialSensor.Status == KinectStatus.Connected)
                 {
-                    this.sensor = potentialSensor;
-                    break;
+                    this.sensors.Add(potentialSensor);
                 }
             }
 
+
+            var mappedfileThread = new Thread(MemoryMapData);
+            mappedfileThread.SetApartmentState(ApartmentState.STA);
+            mappedfileThread.Start();
+
             /// MUTEX Zeuchs
-            System.Collections.ArrayList processes = new System.Collections.ArrayList();
-            for (int i = 0; i < this.DeviceCount; i++)
+            this.processes = new System.Collections.ArrayList();
+            int i = 0;
+            foreach (KinectSensor sensor in this.sensors)
             {
                 Process p = new System.Diagnostics.Process();
                 p.StartInfo.CreateNoWindow = true;
@@ -113,53 +141,14 @@ namespace wally
                   = Environment.CurrentDirectory + "\\ConsoleApplication1.exe";
                 p.StartInfo.WindowStyle
                   = System.Diagnostics.ProcessWindowStyle.Normal;
+                p.StartInfo.Arguments = sensor.UniqueKinectId + " " + i;
                 p.Start();
-                processes.Add(p);
+                this.processes.Add(p);
+                i++;
             }
 
-            var mappedfileThread = new Thread(MemoryMapData);
-            mappedfileThread.SetApartmentState(ApartmentState.STA);
-            mappedfileThread.Start();
-
-            Console.WriteLine("created MutexThread");
 
 
-            if (null != this.sensor)
-            {
-                //this.sensor.SkeletonStream.Enable(); //ohne Smoothing
-                this.sensor.SkeletonStream.Enable(new TransformSmoothParameters()
-                {
-                    Smoothing = 0.5f,
-                    Correction = 0.1f,
-                    Prediction = 0.5f,
-                    JitterRadius = 0.1f,
-                    MaxDeviationRadius = 0.1f
-                });
-
-                //Init Polyline
-                myPolyline = new Polyline();
-                myPolyline.Stroke = System.Windows.Media.Brushes.White;
-                myPolyline.StrokeThickness = 2;
-                myPolyline.FillRule = FillRule.EvenOdd;
-                myPonyLines.Add(myPolyline);
-                currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-                myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
-
-
-
-                //Add an event handler to be called whenever there is new skeleton frame...
-                this.sensor.SkeletonFrameReady += this.SkeletonFrameReady;
-
-                // Start the sensor!
-                try
-                {
-                    this.sensor.Start();
-                }
-                catch (IOException)
-                {
-                    this.sensor = null;
-                }
-            }
         }
 
         /// <summary>
@@ -294,6 +283,30 @@ namespace wally
             }
         }
 
+        private void DrawSkeleton()
+        {
+            using (DrawingContext dc = this.drawingGroup.Open())
+            {
+                dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+
+                foreach (Skeleton skel in this.skelData)
+                {
+                    this.DrawBonesAndJoints(skel, dc);
+                    dc.DrawEllipse(
+                        this.centerPointBrush,
+                        null,
+                        this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position),
+                        BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
+                        BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
+
+                    System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
+                }
+
+
+                this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+            }
+        }
+
         /// <summary>
         /// Draws a skeleton's bones and joints
         /// </summary>
@@ -379,7 +392,7 @@ namespace wally
         {
             // Convert point to depth space.  
             // We are not using depth directly, but we do want the points in our 640x480 output resolution.
-            DepthImagePoint depthPoint = this.sensor.CoordinateMapper.MapSkeletonPointToDepthPoint(skelpoint, DepthImageFormat.Resolution640x480Fps30);
+            DepthImagePoint depthPoint = ((KinectSensor)this.sensors[0]).CoordinateMapper.MapSkeletonPointToDepthPoint(skelpoint, DepthImageFormat.Resolution640x480Fps30);
             return new Point(depthPoint.X, depthPoint.Y);
         }
 
@@ -419,53 +432,155 @@ namespace wally
             drawingContext.DrawLine(drawPen, this.SkeletonPointToScreen(joint0.Position), this.SkeletonPointToScreen(joint1.Position));
         }
 
+        /// <summary>
+        /// Terminates the child process and sensor communication.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (null != this.sensor)
+            try
             {
-                this.sensor.Stop();
+                foreach (Process process in this.processes)
+                {
+                    process.Kill();
+                }
+                foreach (KinectSensor sensor in this.sensors)
+                {
+                    sensor.Stop();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error on Closing: " + ex.Message);
+            }
+
+        }
+
+
+        /// <summary>
+        /// Thread for MemoryMapConnection
+        /// </summary>
+        private void MemoryMapData()
+        {
+
+
+            var skeletonMutex = new Mutex(true, "skeletonmutex");
+            skeletonMutex.ReleaseMutex();
+
+            // Create for each Kinect Sensor in the Child Processes  
+            this.initMemoryFiles();
+
+            // ****************
+            // SKELETON-MAPPING
+            // ****************
+
+
+
+
+            bool empty = false;
+
+            while (true)
+            {
+                DateTime before = DateTime.Now;
+
+                // Gather the skeletons
+                this.skelData = new ArrayList();
+                if (this.skelAccess != null)
+                {
+
+                    for (int i = 0; i < this.skelAccess.GetLength(0); i++)
+                    {
+                        for (int j = 0; j < 2; j++)
+                        {
+                            MemoryMappedViewAccessor accessor = this.skelAccess[i, j];
+                            byte[] temp = new byte[mmf_result.Length];
+
+                            skeletonMutex.WaitOne();
+
+                            accessor.ReadArray<byte>(0, mmf_result, 0, mmf_result.Length);
+
+                            Array.Copy(mmf_result, temp, mmf_result.Length);
+
+                            empty = temp.All(B => B == default(Byte));
+
+                            skeletonMutex.ReleaseMutex();
+
+                            if (!empty)
+                            {
+                                try
+                                {
+                                    BinaryFormatter bf = new BinaryFormatter();
+                                    MemoryStream ms = new MemoryStream(mmf_result);
+                                    Skeleton skelNew = (Skeleton)bf.Deserialize(ms);
+
+                                    this.skelData.Add(skelNew);
+                                    //Console.WriteLine("Skeleton on Kinect " + i + " on Channel " + j);
+                                }
+                                catch (Exception e)
+                                {
+
+                                }
+
+                            }
+                            else
+                            {
+                                // Console.WriteLine("Nooooo!");
+                            }
+
+
+
+                        }
+
+                    }
+
+
+                }
+                // TIMEOUT
+                DateTime after = DateTime.Now;
+                int delay = after.Millisecond - before.Millisecond;
+                int fill = 100 - delay;
+                if (fill > 0) Thread.Sleep(fill);
+
+                // After all: REPAINT TIME!!!
+                Dispatcher.Invoke(DispatcherPriority.Send,
+                             new Action(DrawTimer));
+            }
+
+
+
+        }
+
+        /// <summary>
+        /// Creates the Memory-Mapped Files and their Accessor's.
+        /// </summary>
+        private void initMemoryFiles()
+        {
+            this.skelFiles = new MemoryMappedFile[this.sensors.Count, 2];
+            this.skelAccess = new MemoryMappedViewAccessor[this.sensors.Count, 2];
+            for (int p = 0; p < this.sensors.Count; p++)
+            {
+                // Maximum of two Skeleton. So two Skeletonfiles
+                for (int i = 0; i < 2; i++)
+                {
+                    Console.WriteLine("Created :" + "skel-" + p + "-" + i);
+                    MemoryMappedFile skelFileTmp = MemoryMappedFile.CreateNew("skel-" + p + "-" + i, MemoryMappedFileCapacitySkeleton);
+
+                    this.skelFiles[p, i] = skelFileTmp;
+                    this.skelAccess[p, i] = skelFileTmp.CreateViewAccessor();
+                }
+
+                // ... more Memory Files for other Channels.
             }
         }
 
-        private void MemoryMapData()
+
+
+        private void DrawTimer()
         {
-            /*Create MemoryMappedfile for Kinect Data Exchange */
-            var file1 = MemoryMappedFile.CreateNew(
-            "SkeletonExchange", MemoryMappedFileCapacitySkeleton);
 
-            /*Mutual Exclusion between 3 processes*/
-            var mutex = new Mutex(true, "mappedfilemutex");
-            mutex.ReleaseMutex(); //Freigabe gleich zu Beginn
+            this.DrawSkeleton();
 
-            using (var accessor = file1.CreateViewAccessor())
-            {
-
-                int[] ints = new int[6];
-
-                for (; ; ) /*Skeleton-Receive Loop*/
-                {
-                    DateTime before = DateTime.Now;
-                    mutex.WaitOne();
-
-                    try
-                    {
-                        accessor.ReadArray(
-                           0, mmf_ints, 0, ints.Length);
-                        Array.Copy(mmf_ints, 0,
-                           ints, 0, mmf_ints.Length);
-                        mutex.ReleaseMutex();
-
-                        Console.WriteLine(mmf_ints[0]);
-
-                        DateTime after = DateTime.Now;
-                        int delay = after.Millisecond - before.Millisecond;
-                        int fill = 10 - delay;
-                        if (fill > 0) Thread.Sleep(fill);
-
-                    }
-                    catch (Exception ex) { }
-                }
-            }
         }
     }
 }
