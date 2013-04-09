@@ -75,65 +75,68 @@ namespace wally
 
         private DrawingImage imageSource; //draw image that we will display
 
-        /// <summary>
-        /// Format we will use for the depth stream
-        /// </summary>
-        private const DepthImageFormat DepthFormat = DepthImageFormat.Resolution320x240Fps30;
 
-        /// <summary>
-        /// Format we will use for the color stream
-        /// </summary>
-        private const ColorImageFormat ColorFormat = ColorImageFormat.RgbResolution640x480Fps30;
+        //########## OLD Greenscreen Stuff
+        //###########################
+        ///// <summary>
+        ///// Format we will use for the depth stream
+        ///// </summary>
+        //private const DepthImageFormat DepthFormat = DepthImageFormat.Resolution320x240Fps30;
+
+        ///// <summary>
+        ///// Format we will use for the color stream
+        ///// </summary>
+        //private const ColorImageFormat ColorFormat = ColorImageFormat.RgbResolution640x480Fps30;
         
-        /// <summary>
-        /// Bitmap that will hold color information
-        /// </summary>
-        private WriteableBitmap colorBitmap;
+        ///// <summary>
+        ///// Bitmap that will hold color information
+        ///// </summary>
+        //private WriteableBitmap colorBitmap;
 
-        /// <summary>
-        /// Bitmap that will hold opacity mask information
-        /// </summary>
-        private WriteableBitmap playerOpacityMaskImage = null;
+        ///// <summary>
+        ///// Bitmap that will hold opacity mask information
+        ///// </summary>
+        //private WriteableBitmap playerOpacityMaskImage = null;
 
-        /// <summary>
-        /// Intermediate storage for the depth data received from the sensor
-        /// </summary>
-        private DepthImagePixel[] depthPixels;
+        ///// <summary>
+        ///// Intermediate storage for the depth data received from the sensor
+        ///// </summary>
+        //private DepthImagePixel[] depthPixels;
 
-        /// <summary>
-        /// Intermediate storage for the color data received from the camera
-        /// </summary>
-        private byte[] colorPixels;
+        ///// <summary>
+        ///// Intermediate storage for the color data received from the camera
+        ///// </summary>
+        //private byte[] colorPixels;
 
-        /// <summary>
-        /// Intermediate storage for the green screen opacity mask
-        /// </summary>
-        private int[] greenScreenPixelData;
+        ///// <summary>
+        ///// Intermediate storage for the green screen opacity mask
+        ///// </summary>
+        //private int[] greenScreenPixelData;
 
-        /// <summary>
-        /// Intermediate storage for the depth to color mapping
-        /// </summary>
-        private ColorImagePoint[] colorCoordinates;
+        ///// <summary>
+        ///// Intermediate storage for the depth to color mapping
+        ///// </summary>
+        //private ColorImagePoint[] colorCoordinates;
 
-        /// <summary>
-        /// Inverse scaling factor between color and depth
-        /// </summary>
-        private int colorToDepthDivisor;
+        ///// <summary>
+        ///// Inverse scaling factor between color and depth
+        ///// </summary>
+        //private int colorToDepthDivisor;
 
-        /// <summary>
-        /// Width of the depth image
-        /// </summary>
-        private int depthWidth;
+        ///// <summary>
+        ///// Width of the depth image
+        ///// </summary>
+        //private int depthWidth;
 
-        /// <summary>
-        /// Height of the depth image
-        /// </summary>
-        private int depthHeight;
+        ///// <summary>
+        ///// Height of the depth image
+        ///// </summary>
+        //private int depthHeight;
 
-        /// <summary>
-        /// Indicates opaque in an opacity mask
-        /// </summary>
-        private int opaquePixelValue = -1;
+        ///// <summary>
+        ///// Indicates opaque in an opacity mask
+        ///// </summary>
+        //private int opaquePixelValue = -1;
 
         // Mutex
         static long MemoryMappedFileCapacitySkeleton = 2255; //10MB in Byte
@@ -204,7 +207,7 @@ namespace wally
             mappedfileThread.SetApartmentState(ApartmentState.STA);
             mappedfileThread.Start();
 
-            /// MUTEX Zeuchs
+            /// MUTEX Stuff
             this.processes = new System.Collections.ArrayList();
             int i = 0;
             foreach (KinectSensor sensor in this.sensors)
@@ -221,21 +224,18 @@ namespace wally
                 i++;
             }
 
+            //Init Polyline
+            myPolyline = new Polyline();
+            myPolyline.Stroke = System.Windows.Media.Brushes.White;
+            myPolyline.StrokeThickness = 2;
+            myPolyline.FillRule = FillRule.EvenOdd;
+            myPonyLines.Add(myPolyline);
+            currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
+            myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
 
 
-
-            //if (null != this.sensor)
-            //{
-            //    //this.sensor.SkeletonStream.Enable(); //ohne Smoothing
-            //    this.sensor.SkeletonStream.Enable(new TransformSmoothParameters()
-            //    {
-            //        Smoothing = 0.5f,
-            //        Correction = 0.1f,
-            //        Prediction = 0.5f,
-            //        JitterRadius = 0.1f,
-            //        MaxDeviationRadius = 0.1f
-            //    });
-
+            //#### OLD This was for the GreenScreen stuff 
+            //######################
             //    // Turn on the depth stream to receive depth frames
             //    this.sensor.DepthStream.Enable(DepthFormat);
 
@@ -249,19 +249,6 @@ namespace wally
             //    int colorHeight = this.sensor.ColorStream.FrameHeight;
 
             //    this.colorToDepthDivisor = colorWidth / this.depthWidth;
-
-            //    //Init Polyline
-            //    myPolyline = new Polyline();
-            //    myPolyline.Stroke = System.Windows.Media.Brushes.White;
-            //    myPolyline.StrokeThickness = 2;
-            //    myPolyline.FillRule = FillRule.EvenOdd;
-            //    myPonyLines.Add(myPolyline);
-            //    currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-            //    myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
-
-            //    //Add an event handler to be called whenever there is new skeleton frame...
-            //    this.sensor.SkeletonFrameReady += this.SkeletonFrameReady;
-
 
             //    // Allocate space to put the depth pixels we'll receive
             //    this.depthPixels = new DepthImagePixel[this.sensor.DepthStream.FramePixelDataLength];
@@ -282,11 +269,6 @@ namespace wally
             //    // Add an event handler to be called whenever there is new depth frame data
             //    this.sensor.AllFramesReady += this.SensorAllFramesReady;
 
-            //    // Start the sensor!
-            //    try
-            //    {
-            //        this.sensor.Start();
-            //    }
         }
 
 
@@ -305,113 +287,6 @@ namespace wally
         //     timerValue--;
         //}
 
-
-        /// <summary>
-        /// Skeleton
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
-        {
-            Skeleton[] skeletons = new Skeleton[0];
-
-            using (SkeletonFrame skeletonFrame = e.OpenSkeletonFrame())
-            {
-                if (skeletonFrame != null)
-                {
-                    skeletons = new Skeleton[skeletonFrame.SkeletonArrayLength];
-                    skeletonFrame.CopySkeletonDataTo(skeletons);
-                }
-            }
-
-            using (DrawingContext dc = this.drawingGroup.Open())
-            {
-                //Draw a transparent background to set the render size
-                dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
-
-                if (skeletons.Length != 0)
-                {
-                    foreach (Skeleton skel in skeletons)
-                    {
-
-                        if (skel.TrackingState == SkeletonTrackingState.Tracked)
-                        {
-
-
-                           // this.DrawBonesAndJoints(skel, dc);
-                            ////dc.DrawEllipse(
-                            ////    this.centerPointBrush,
-                            ////    null,
-                            ////    this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position),
-                            ////    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
-                            ////    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
-
-                           // AnimateColors(this.SkeletonPointToScreen(skel.Position));
-
-                            System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
-
-                            //As long as the hand is nearer to the screen than the user's body -> painting 
-                            //As soon as the hand is further away from the screen than the user's body (or the same level) -> not painting
-                            if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.1 && currentLine.Points.Count > 1)
-                            {
-                                DrawLine(currentLine.Stroke, 5);
-                            }
-
-                            //When the hand is near to the screen (if-case) the line gets thicker
-
-                            if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.8 && skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.3 && currentLine.Points.Count > 1)
-                            {
-                                if (currentStroke == 2)
-                                {
-                                    DrawLine(currentLine.Stroke, 20);
-                                    currentStroke = 1;
-                                }
-                                else
-                                    currentLine.StrokeThickness = 20;
-
-                            }
-
-                            //When the hand is further away from the screen (else if - case) the line gets thinner
-                            else if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.3 && currentLine.Points.Count > 1)
-                            {
-                                if (currentStroke == 1)
-                                {
-                                    DrawLine(currentLine.Stroke, 5);
-                                    currentStroke = 2;
-                                }
-                                else
-                                    currentLine.StrokeThickness = 5;
-
-                            }
-
-
-                            if (skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.1)
-                            {
-                                currentLine.Points.Add(Point1);
-                            }
-
-                        // Changing of stroke color with the left hand
-                            ColorSelection(skel);
-
-                        }
-
-
-                        else if (skel.TrackingState == SkeletonTrackingState.PositionOnly)
-                        {
-                            //dc.DrawEllipse(
-                            //this.centerPointBrush,
-                            //null,
-                            //this.SkeletonPointToScreen(skel.Position),
-                            //BodyCenterThickness,
-                            //BodyCenterThickness);
-                        }
-                    }
-                }
-
-                this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderWidth, RenderHeight));
-            }
-        }
-
         /// <summary>
         /// Saves the drawn lines as a png-File to improve performance
         /// </summary>
@@ -419,11 +294,8 @@ namespace wally
         {
 
             RenderTargetBitmap targetBitmap = new RenderTargetBitmap((int)myCanvas.ActualWidth,
-
                              (int)myCanvas.ActualHeight,
-
                              96d, 96d,
-
                              PixelFormats.Default);
 
             targetBitmap.Render(myCanvas);
@@ -451,11 +323,12 @@ namespace wally
             catch (IOException)
             {
             }
-                        }
+        }
 
-        ///// <summary>
-        ///// Animate the "Paintbuckets" to stay near the user
-        ///// </summary>
+        /// <summary>
+        /// Animate the "Paintbuckets" to stay near the user
+        /// </summary>
+        /// <param name="newPosition">Position of the Skeleton, to attach Paintbuckets to it </param>
         private void AnimateColors(Point newPosition)
         {
             // Create a new animation with start and end values, duration and
@@ -473,12 +346,14 @@ namespace wally
             rt.BeginAnimation(TranslateTransform.XProperty, da);
         }
 
-        // Implement this method
-        private void animationCompleted(Canvas myCanvas, Point newPosition)
-                        {
-            myCanvas.Margin = new Thickness((newPosition.X - 200), 0, 0, 0);
-                // = (int)newPosition.X;
-                        }
+        /// <summary>
+        /// EventHandler for the ColorBucket-Animation 
+        /// </summary>
+        /// <param name="myCanvas">Canvas that is animated, containing the paintbucket ellipses</param>
+        /// <param name="newPosition">Position of the Skeleton, to attach Paintbuckets to it </param>
+        private void animationCompleted(Canvas myCanvas, Point newPosition) {
+                myCanvas.Margin = new Thickness((newPosition.X - 200), 0, 0, 0);
+        }
 
         /// <summary>
         /// Manage the selection of different colors
@@ -524,6 +399,61 @@ namespace wally
         
         }
 
+        private void Painting() {
+
+
+            foreach (Skeleton skel in this.skelData)
+            {
+
+                // AnimateColors(this.SkeletonPointToScreen(skel.Position));
+
+                System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
+
+                //As long as the hand is nearer to the screen than the user's body -> painting 
+                //As soon as the hand is further away from the screen than the user's body (or the same level) -> not painting
+                if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.1 && currentLine.Points.Count > 1)
+                {
+                    DrawLine(currentLine.Stroke, 5);
+                }
+
+                //When the hand is near to the screen (if-case) the line gets thicker
+
+                if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.8 && skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.3 && currentLine.Points.Count > 1)
+                {
+                    if (currentStroke == 2)
+                    {
+                        DrawLine(currentLine.Stroke, 20);
+                        currentStroke = 1;
+                    }
+                    else
+                        currentLine.StrokeThickness = 20;
+
+                }
+
+                //When the hand is further away from the screen (else if - case) the line gets thinner
+                else if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.3 && currentLine.Points.Count > 1)
+                {
+                    if (currentStroke == 1)
+                    {
+                        DrawLine(currentLine.Stroke, 5);
+                        currentStroke = 2;
+                    }
+                    else
+                        currentLine.StrokeThickness = 5;
+
+                }
+
+
+                if (skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.1)
+                {
+                    currentLine.Points.Add(Point1);
+                }
+
+                // Changing of stroke color with the left hand
+                ColorSelection(skel);
+            }
+        }
+
         private void DrawSkeleton()
         {
             using (DrawingContext dc = this.drawingGroup.Open())
@@ -540,7 +470,6 @@ namespace wally
                         BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
                         BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
 
-                    System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
                 }
 
 
@@ -636,22 +565,22 @@ namespace wally
                 myPolyline.StrokeThickness = 2;
                 myPolyline.FillRule = FillRule.EvenOdd;
                 myPonyLines.Add(myPolyline);
-            currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
+                currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
                 myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
             }
 
             else {
          
                 currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-            Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
-            Console.WriteLine("Number of Lines:" + myPonyLines.Count);
-            Polyline newLine = new Polyline();
-            newLine.Stroke = lineColor;
-            newLine.StrokeThickness = lineThickness;
-            myPonyLines.Add(newLine);
+                Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
+                Console.WriteLine("Number of Lines:" + myPonyLines.Count);
+                Polyline newLine = new Polyline();
+                newLine.Stroke = lineColor;
+                newLine.StrokeThickness = lineThickness;
+                myPonyLines.Add(newLine);
                 myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
-            currentLine = newLine;
-        }
+                currentLine = newLine;
+             }
         }
 
 
@@ -854,6 +783,7 @@ namespace wally
         {
 
             this.DrawSkeleton();
+            this.Painting();
 
         }
         /// <summary>
