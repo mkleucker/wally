@@ -178,10 +178,10 @@ namespace wally
 
             this.DeviceCount = KinectSensor.KinectSensors.Count;
 
-           /* System.Timers.Timer thisTimer = new System.Timers.Timer();
-            thisTimer.Elapsed += new ElapsedEventHandler(CountDownClock);
-            thisTimer.Interval = 1000; // 1000 ms is one second
-            thisTimer.Start();*/
+            //System.Timers.Timer thisTimer = new System.Timers.Timer();
+            //thisTimer.Elapsed += new ElapsedEventHandler(CountDownClock);
+            //thisTimer.Interval = 1000; // 1000 ms is one second
+            //thisTimer.Start();
 
 
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
@@ -224,69 +224,70 @@ namespace wally
 
 
 
-            if (null != this.sensor)
-            {
-                //this.sensor.SkeletonStream.Enable(); //ohne Smoothing
-                this.sensor.SkeletonStream.Enable(new TransformSmoothParameters()
-                {
-                    Smoothing = 0.5f,
-                    Correction = 0.1f,
-                    Prediction = 0.5f,
-                    JitterRadius = 0.1f,
-                    MaxDeviationRadius = 0.1f
-                });
+            //if (null != this.sensor)
+            //{
+            //    //this.sensor.SkeletonStream.Enable(); //ohne Smoothing
+            //    this.sensor.SkeletonStream.Enable(new TransformSmoothParameters()
+            //    {
+            //        Smoothing = 0.5f,
+            //        Correction = 0.1f,
+            //        Prediction = 0.5f,
+            //        JitterRadius = 0.1f,
+            //        MaxDeviationRadius = 0.1f
+            //    });
 
-                // Turn on the depth stream to receive depth frames
-                this.sensor.DepthStream.Enable(DepthFormat);
+            //    // Turn on the depth stream to receive depth frames
+            //    this.sensor.DepthStream.Enable(DepthFormat);
 
-                this.depthWidth = this.sensor.DepthStream.FrameWidth;
+            //    this.depthWidth = this.sensor.DepthStream.FrameWidth;
 
-                this.depthHeight = this.sensor.DepthStream.FrameHeight;
+            //    this.depthHeight = this.sensor.DepthStream.FrameHeight;
 
-                this.sensor.ColorStream.Enable(ColorFormat);
+            //    this.sensor.ColorStream.Enable(ColorFormat);
 
-                int colorWidth = this.sensor.ColorStream.FrameWidth;
-                int colorHeight = this.sensor.ColorStream.FrameHeight;
+            //    int colorWidth = this.sensor.ColorStream.FrameWidth;
+            //    int colorHeight = this.sensor.ColorStream.FrameHeight;
 
-                this.colorToDepthDivisor = colorWidth / this.depthWidth;
+            //    this.colorToDepthDivisor = colorWidth / this.depthWidth;
 
-                //Init Polyline
-                myPolyline = new Polyline();
-                myPolyline.Stroke = System.Windows.Media.Brushes.White;
-                myPolyline.StrokeThickness = 2;
-                myPolyline.FillRule = FillRule.EvenOdd;
-                myPonyLines.Add(myPolyline);
-                currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-                myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
+            //    //Init Polyline
+            //    myPolyline = new Polyline();
+            //    myPolyline.Stroke = System.Windows.Media.Brushes.White;
+            //    myPolyline.StrokeThickness = 2;
+            //    myPolyline.FillRule = FillRule.EvenOdd;
+            //    myPonyLines.Add(myPolyline);
+            //    currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
+            //    myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
 
-                //Add an event handler to be called whenever there is new skeleton frame...
-                this.sensor.SkeletonFrameReady += this.SkeletonFrameReady;
+            //    //Add an event handler to be called whenever there is new skeleton frame...
+            //    this.sensor.SkeletonFrameReady += this.SkeletonFrameReady;
 
 
-                // Allocate space to put the depth pixels we'll receive
-                this.depthPixels = new DepthImagePixel[this.sensor.DepthStream.FramePixelDataLength];
+            //    // Allocate space to put the depth pixels we'll receive
+            //    this.depthPixels = new DepthImagePixel[this.sensor.DepthStream.FramePixelDataLength];
 
-                // Allocate space to put the color pixels we'll create
-                this.colorPixels = new byte[this.sensor.ColorStream.FramePixelDataLength];
+            //    // Allocate space to put the color pixels we'll create
+            //    this.colorPixels = new byte[this.sensor.ColorStream.FramePixelDataLength];
 
-                this.greenScreenPixelData = new int[this.sensor.DepthStream.FramePixelDataLength];
+            //    this.greenScreenPixelData = new int[this.sensor.DepthStream.FramePixelDataLength];
 
-                this.colorCoordinates = new ColorImagePoint[this.sensor.DepthStream.FramePixelDataLength];
+            //    this.colorCoordinates = new ColorImagePoint[this.sensor.DepthStream.FramePixelDataLength];
 
-                // This is the bitmap we'll display on-screen
-                this.colorBitmap = new WriteableBitmap(colorWidth, colorHeight, 96.0, 96.0, PixelFormats.Bgr32, null);
+            //    // This is the bitmap we'll display on-screen
+            //    this.colorBitmap = new WriteableBitmap(colorWidth, colorHeight, 96.0, 96.0, PixelFormats.Bgr32, null);
 
-                // Set the image we display to point to the bitmap where we'll put the image data
-                this.MaskedColor.Source = this.colorBitmap;
+            //    // Set the image we display to point to the bitmap where we'll put the image data
+            //    this.MaskedColor.Source = this.colorBitmap;
 
-                // Add an event handler to be called whenever there is new depth frame data
-                this.sensor.AllFramesReady += this.SensorAllFramesReady;
+            //    // Add an event handler to be called whenever there is new depth frame data
+            //    this.sensor.AllFramesReady += this.SensorAllFramesReady;
 
-                // Start the sensor!
-                try
-                {
-                    this.sensor.Start();
-                }
+            //    // Start the sensor!
+            //    try
+            //    {
+            //        this.sensor.Start();
+            //    }
+        }
 
 
         ///// <summary>
@@ -860,130 +861,130 @@ namespace wally
         /// </summary>
         /// <param name="sender">object sending the event</param>
         /// <param name="e">event arguments</param>
-        private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs e)
-        {
-            // in the middle of shutting down, so nothing to do
-            if (null == this.sensor)
-            {
-                return;
-            }
+        //private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs e)
+        //{
+        //    // in the middle of shutting down, so nothing to do
+        //    if (null == this.sensor)
+        //    {
+        //        return;
+        //    }
 
-            bool depthReceived = false;
-            bool colorReceived = false;
+        //    bool depthReceived = false;
+        //    bool colorReceived = false;
 
-            using (DepthImageFrame depthFrame = e.OpenDepthImageFrame())
-            {
-                if (null != depthFrame)
-                {
-                    // Copy the pixel data from the image to a temporary array
-                    depthFrame.CopyDepthImagePixelDataTo(this.depthPixels);
+        //    using (DepthImageFrame depthFrame = e.OpenDepthImageFrame())
+        //    {
+        //        if (null != depthFrame)
+        //        {
+        //            // Copy the pixel data from the image to a temporary array
+        //            depthFrame.CopyDepthImagePixelDataTo(this.depthPixels);
 
-                    depthReceived = true;
-                }
-            }
+        //            depthReceived = true;
+        //        }
+        //    }
 
-            using (ColorImageFrame colorFrame = e.OpenColorImageFrame())
-            {
-                if (null != colorFrame)
-                {
-                    // Copy the pixel data from the image to a temporary array
-                    colorFrame.CopyPixelDataTo(this.colorPixels);
+        //    using (ColorImageFrame colorFrame = e.OpenColorImageFrame())
+        //    {
+        //        if (null != colorFrame)
+        //        {
+        //            // Copy the pixel data from the image to a temporary array
+        //            colorFrame.CopyPixelDataTo(this.colorPixels);
 
-                    colorReceived = true;
-                }
-            }
+        //            colorReceived = true;
+        //        }
+        //    }
 
-            // do our processing outside of the using block
-            // so that we return resources to the kinect as soon as possible
-            if (true == depthReceived)
-            {
-                this.sensor.CoordinateMapper.MapDepthFrameToColorFrame(
-                    DepthFormat,
-                    this.depthPixels,
-                    ColorFormat,
-                    this.colorCoordinates);
+        //    // do our processing outside of the using block
+        //    // so that we return resources to the kinect as soon as possible
+        //    if (true == depthReceived)
+        //    {
+        //        this.sensor.CoordinateMapper.MapDepthFrameToColorFrame(
+        //            DepthFormat,
+        //            this.depthPixels,
+        //            ColorFormat,
+        //            this.colorCoordinates);
 
-                Array.Clear(this.greenScreenPixelData, 0, this.greenScreenPixelData.Length);
+        //        Array.Clear(this.greenScreenPixelData, 0, this.greenScreenPixelData.Length);
 
-                // loop over each row and column of the depth
-                for (int y = 0; y < this.depthHeight; ++y)
-                {
-                    for (int x = 0; x < this.depthWidth; ++x)
-                    {
-                        // calculate index into depth array
-                        int depthIndex = x + (y * this.depthWidth);
+        //        // loop over each row and column of the depth
+        //        for (int y = 0; y < this.depthHeight; ++y)
+        //        {
+        //            for (int x = 0; x < this.depthWidth; ++x)
+        //            {
+        //                // calculate index into depth array
+        //                int depthIndex = x + (y * this.depthWidth);
 
-                        DepthImagePixel depthPixel = this.depthPixels[depthIndex];
+        //                DepthImagePixel depthPixel = this.depthPixels[depthIndex];
 
-                        int player = depthPixel.PlayerIndex;
+        //                int player = depthPixel.PlayerIndex;
 
-                        // if we're tracking a player for the current pixel, do green screen
-                        if (player > 0)
-                        {
-                            // retrieve the depth to color mapping for the current depth pixel
-                            ColorImagePoint colorImagePoint = this.colorCoordinates[depthIndex];
+        //                // if we're tracking a player for the current pixel, do green screen
+        //                if (player > 0)
+        //                {
+        //                    // retrieve the depth to color mapping for the current depth pixel
+        //                    ColorImagePoint colorImagePoint = this.colorCoordinates[depthIndex];
 
-                            // scale color coordinates to depth resolution
-                            int colorInDepthX = colorImagePoint.X / this.colorToDepthDivisor;
-                            int colorInDepthY = colorImagePoint.Y / this.colorToDepthDivisor;
+        //                    // scale color coordinates to depth resolution
+        //                    int colorInDepthX = colorImagePoint.X / this.colorToDepthDivisor;
+        //                    int colorInDepthY = colorImagePoint.Y / this.colorToDepthDivisor;
 
-                            // make sure the depth pixel maps to a valid point in color space
-                            // check y > 0 and y < depthHeight to make sure we don't write outside of the array
-                            // check x > 0 instead of >= 0 since to fill gaps we set opaque current pixel plus the one to the left
-                            // because of how the sensor works it is more correct to do it this way than to set to the right
-                            if (colorInDepthX > 0 && colorInDepthX < this.depthWidth && colorInDepthY >= 0 && colorInDepthY < this.depthHeight)
-                            {
-                                // calculate index into the green screen pixel array
-                                int greenScreenIndex = colorInDepthX + (colorInDepthY * this.depthWidth);
+        //                    // make sure the depth pixel maps to a valid point in color space
+        //                    // check y > 0 and y < depthHeight to make sure we don't write outside of the array
+        //                    // check x > 0 instead of >= 0 since to fill gaps we set opaque current pixel plus the one to the left
+        //                    // because of how the sensor works it is more correct to do it this way than to set to the right
+        //                    if (colorInDepthX > 0 && colorInDepthX < this.depthWidth && colorInDepthY >= 0 && colorInDepthY < this.depthHeight)
+        //                    {
+        //                        // calculate index into the green screen pixel array
+        //                        int greenScreenIndex = colorInDepthX + (colorInDepthY * this.depthWidth);
 
-                                // set opaque
-                                this.greenScreenPixelData[greenScreenIndex] = opaquePixelValue;
+        //                        // set opaque
+        //                        this.greenScreenPixelData[greenScreenIndex] = opaquePixelValue;
 
-                                // compensate for depth/color not corresponding exactly by setting the pixel 
-                                // to the left to opaque as well
-                                this.greenScreenPixelData[greenScreenIndex - 1] = opaquePixelValue;
-                            }
-                        }
-                    }
-                }
-            }
+        //                        // compensate for depth/color not corresponding exactly by setting the pixel 
+        //                        // to the left to opaque as well
+        //                        this.greenScreenPixelData[greenScreenIndex - 1] = opaquePixelValue;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
 
-            // do our processing outside of the using block
-            // so that we return resources to the kinect as soon as possible
-            if (true == colorReceived)
-            {
+        //    // do our processing outside of the using block
+        //    // so that we return resources to the kinect as soon as possible
+        //    if (true == colorReceived)
+        //    {
 
-                for (int i = 0; i < colorPixels.Length - 1; i++) {
-                    colorPixels[i] = 0x77;
-                } 
+        //        for (int i = 0; i < colorPixels.Length - 1; i++) {
+        //            colorPixels[i] = 0x77;
+        //        } 
                 
-                // Write the pixel data into our bitmap
-                this.colorBitmap.WritePixels(
-                    new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight),
-                    this.colorPixels,
-                    this.colorBitmap.PixelWidth * sizeof(int),
-                    0);
+        //        // Write the pixel data into our bitmap
+        //        this.colorBitmap.WritePixels(
+        //            new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight),
+        //            this.colorPixels,
+        //            this.colorBitmap.PixelWidth * sizeof(int),
+        //            0);
 
-                if (this.playerOpacityMaskImage == null)
-                {
-                    this.playerOpacityMaskImage = new WriteableBitmap(
-                        this.depthWidth,
-                        this.depthHeight,
-                        96,
-                        96,
-                        PixelFormats.Bgra32,
-                        null);
+        //        if (this.playerOpacityMaskImage == null)
+        //        {
+        //            this.playerOpacityMaskImage = new WriteableBitmap(
+        //                this.depthWidth,
+        //                this.depthHeight,
+        //                96,
+        //                96,
+        //                PixelFormats.Bgra32,
+        //                null);
 
-                    MaskedColor.OpacityMask = new ImageBrush { ImageSource = this.playerOpacityMaskImage };
-                }
+        //            MaskedColor.OpacityMask = new ImageBrush { ImageSource = this.playerOpacityMaskImage };
+        //        }
 
-                this.playerOpacityMaskImage.WritePixels(
-                    new Int32Rect(0, 0, this.depthWidth, this.depthHeight),
-                    this.greenScreenPixelData,
-                    this.depthWidth * ((this.playerOpacityMaskImage.Format.BitsPerPixel + 7) / 8),
-                    0);
-            }
-        }
+        //        this.playerOpacityMaskImage.WritePixels(
+        //            new Int32Rect(0, 0, this.depthWidth, this.depthHeight),
+        //            this.greenScreenPixelData,
+        //            this.depthWidth * ((this.playerOpacityMaskImage.Format.BitsPerPixel + 7) / 8),
+        //            0);
+        //    }
+        //}
 
     }
 }
