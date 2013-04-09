@@ -22,17 +22,19 @@ namespace KinectCommunication
     {
         private String processId;
 
-        static Mutex mutex;
-        static MemoryMappedFile file;
-        static MemoryMappedViewAccessor writer;
+
 
         private KinectSensor sensor;
 
         private Object[] skelToTransfer;
 
-        private MemoryMappedFile[] files;
-        private MemoryMappedViewAccessor[] writers;
+        static Mutex skeletonMutex;
+        private MemoryMappedFile[] skeletonFiles;
+        private MemoryMappedViewAccessor[] skeletonWriters;
 
+        static Mutex maskMutex;
+        private MemoryMappedFile maskFile;
+        private MemoryMappedViewAccessor maskWriter;
 
         // Shadowing the users
         private const DepthImageFormat DepthFormat = DepthImageFormat.Resolution320x240Fps30;
@@ -41,7 +43,7 @@ namespace KinectCommunication
 
         private DepthImagePixel[] depthPixels;
 
-        private int[] greenScreenPixelData;
+        private byte[] greenScreenPixelData;
 
         private byte[] colorPixels;
 
@@ -53,7 +55,7 @@ namespace KinectCommunication
 
         private int depthHeight;
 
-        private int opaquePixelValue = -1;
+        private byte opaquePixelValue = 255;
 
         static void Main(string[] args)
         {
@@ -84,16 +86,20 @@ namespace KinectCommunication
 
             try
             {
-                mutex = Mutex.OpenExisting("skeletonmutex");
-                files = new MemoryMappedFile[2];
-                writers = new MemoryMappedViewAccessor[2];
+                skeletonMutex = Mutex.OpenExisting("skeletonmutex");
+                skeletonFiles = new MemoryMappedFile[2];
+                skeletonWriters = new MemoryMappedViewAccessor[2];
                 for (int i = 0; i < 2; i++)
                 {
                     MemoryMappedFile file = MemoryMappedFile.OpenExisting("skel-" + pId + "-" + i);
-                    files[i] = file;
+                    skeletonFiles[i] = file;
                     MemoryMappedViewAccessor writer = file.CreateViewAccessor();
-                    writers[i] = writer;
+                    skeletonWriters[i] = writer;
                 }
+
+                maskMutex = Mutex.OpenExisting("maskmutex");
+                maskFile = MemoryMappedFile.OpenExisting("mask-" + pId);
+                maskWriter = maskFile.CreateViewAccessor();
 
             }
             catch (FileNotFoundException e)
@@ -115,7 +121,7 @@ namespace KinectCommunication
                 }
             }
 
-            var mappedfileThread = new Thread(transmitSkeletons);
+            var mappedfileThread = new Thread(transmitData);
             mappedfileThread.SetApartmentState(ApartmentState.STA);
             mappedfileThread.Start();
 
@@ -145,13 +151,15 @@ namespace KinectCommunication
             // Setup Vars for Depth and Image
             this.depthWidth = this.sensor.DepthStream.FrameWidth;
             this.depthHeight = this.sensor.DepthStream.FrameHeight;
+            Console.WriteLine(this.depthHeight);
             int colorWidth = this.sensor.ColorStream.FrameWidth;
             int colorHeight = this.sensor.ColorStream.FrameHeight;
             this.colorToDepthDivisor = colorWidth / this.depthWidth;
             this.depthPixels = new DepthImagePixel[this.sensor.DepthStream.FramePixelDataLength];
             this.colorPixels = new byte[this.sensor.ColorStream.FramePixelDataLength];
 
-            this.greenScreenPixelData = new int[this.sensor.DepthStream.FramePixelDataLength];
+            this.greenScreenPixelData = new byte[this.sensor.DepthStream.FramePixelDataLength];
+            Console.WriteLine(this.sensor.DepthStream.FramePixelDataLength);
             this.colorCoordinates = new ColorImagePoint[this.sensor.DepthStream.FramePixelDataLength];
 
             skelToTransfer = new byte[0][];
@@ -306,32 +314,25 @@ namespace KinectCommunication
                                 // compensate for depth/color not corresponding exactly by setting the pixel 
                                 // to the left to opaque as well
                                 this.greenScreenPixelData[greenScreenIndex - 1] = opaquePixelValue;
+
                             }
                         }
                     }
                 }
             }
 
-            // do our processing outside of the using block
-            // so that we return resources to the kinect as soon as possible
-            if (true == colorReceived)
-            {
-
-                for (int i = 0; i < colorPixels.Length - 1; i++)
-                {
-                    colorPixels[i] = 0x77;
-                }
-
-
-            }
 
         }
 
         /// <summary>
         /// Push the local Skeleton Data to a MemoryMappedFile.
         /// </summary>
-        private void transmitSkeletons()
+        private void transmitData()
         {
+
+            byte[] emptyByte = new byte[1] { 0 };
+            int[] emptyInt = new int[1] { -2 };
+
             while (true)
             {
 
@@ -351,9 +352,9 @@ namespace KinectCommunication
                         //Console.WriteLine("Skeletons to Transmit: " + skelToTransfer.Length);
                     }
 
-                    mutex.WaitOne();
+                    skeletonMutex.WaitOne();
 
-                    foreach (MemoryMappedViewAccessor writer in this.writers)
+                    foreach (MemoryMappedViewAccessor writer in this.skeletonWriters)
                     {
                         // No Skeleton Available
                         if (skelToTransfer != null && skelToTransfer.Length >= i + 1 && skelToTransfer[i] != null)
@@ -367,23 +368,38 @@ namespace KinectCommunication
                         }
                         else
                         {
-                            byte[] empty = new byte[1] { 0 };
-                            writer.WriteArray<byte>(0, empty, 0, empty.Length);
+
+                            writer.WriteArray<byte>(0, emptyByte, 0, emptyByte.Length);
 
                             // Console.WriteLine("Empty transmitted");
                             continue;
 
                         }
 
-
-
-
                         i++;
                     }
 
-                    mutex.ReleaseMutex();
+                    skeletonMutex.ReleaseMutex();
 
+                    // TRANSFER THE MASK
+                    maskMutex.WaitOne();
 
+                    if (this.greenScreenPixelData != null && this.greenScreenPixelData.Length > 0)
+                    {
+                        maskWriter.WriteArray<byte>(0,
+                            this.greenScreenPixelData,
+                            0,
+                            this.greenScreenPixelData.Length);
+                    }
+                    else
+                    {
+                        maskWriter.WriteArray<byte>(0,
+                            emptyByte,
+                            0,
+                            emptyByte.Length
+                        );
+                    }
+                    maskMutex.ReleaseMutex();
 
                     DateTime after = DateTime.Now;
                     int delay = after.Millisecond - before.Millisecond;

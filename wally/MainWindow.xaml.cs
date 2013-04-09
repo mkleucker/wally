@@ -91,7 +91,7 @@ namespace wally
         ///// <summary>
         ///// Bitmap that will hold color information
         ///// </summary>
-        //private WriteableBitmap colorBitmap;
+        private WriteableBitmap shadowBitmap;
 
         ///// <summary>
         ///// Bitmap that will hold opacity mask information
@@ -139,13 +139,13 @@ namespace wally
         //private int opaquePixelValue = -1;
 
         // Mutex
-        static long MemoryMappedFileCapacitySkeleton = 2255; //10MB in Byte
-        static Mutex mutex1;
-        static MemoryMappedFile file1;
+        static long MemoryMappedFileCapacitySkeleton = 2255;
+        static long MemoryMappedFileCapacityMask = 307200;
+
 
         private byte[] mmf_result;
 
-        private int[] mmf_ints;
+        private byte[] mmf_mask;
 
         // Using Two Kinects
         private ArrayList processes;
@@ -161,6 +161,11 @@ namespace wally
 
         private ArrayList skelData;
 
+        static Mutex maskMutex;
+        private MemoryMappedFile[] maskFiles;
+        private MemoryMappedViewAccessor[] maskAccess;
+        private ArrayList maskData;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -175,7 +180,7 @@ namespace wally
         {
             //int size = ;
             mmf_result = new byte[MemoryMappedFileCapacitySkeleton];
-            mmf_ints = new int[6];
+            mmf_mask = new byte[MemoryMappedFileCapacityMask];
 
             this.myPonyLines = new ArrayList();
 
@@ -261,7 +266,7 @@ namespace wally
             //    this.colorCoordinates = new ColorImagePoint[this.sensor.DepthStream.FramePixelDataLength];
 
             //    // This is the bitmap we'll display on-screen
-            //    this.colorBitmap = new WriteableBitmap(colorWidth, colorHeight, 96.0, 96.0, PixelFormats.Bgr32, null);
+            this.shadowBitmap = new WriteableBitmap(320, 240, 96.0, 96.0, PixelFormats.Bgra32, null);
 
             //    // Set the image we display to point to the bitmap where we'll put the image data
             //    this.MaskedColor.Source = this.colorBitmap;
@@ -677,6 +682,9 @@ namespace wally
             var skeletonMutex = new Mutex(true, "skeletonmutex");
             skeletonMutex.ReleaseMutex();
 
+            var maskMutex = new Mutex(true, "maskmutex");
+            maskMutex.ReleaseMutex();
+
             // Create for each Kinect Sensor in the Child Processes  
             this.initMemoryFiles();
 
@@ -724,7 +732,6 @@ namespace wally
                                     Skeleton skelNew = (Skeleton)bf.Deserialize(ms);
 
                                     this.skelData.Add(skelNew);
-                                    //Console.WriteLine("Skeleton on Kinect " + i + " on Channel " + j);
                                 }
                                 catch (Exception e)
                                 {
@@ -734,7 +741,6 @@ namespace wally
                             }
                             else
                             {
-                                // Console.WriteLine("Nooooo!");
                             }
 
 
@@ -745,6 +751,30 @@ namespace wally
 
 
                 }
+
+                // Get The Mask
+
+                maskData.Clear();
+                for (int i = 0; i < maskAccess.Length; i++)
+                {
+                    MemoryMappedViewAccessor reader = maskAccess[i];
+
+                    byte[] temp = new byte[mmf_mask.Length];
+
+                    maskMutex.WaitOne();
+
+                    reader.ReadArray<byte>(0, mmf_mask, 0, mmf_mask.Length);
+
+                    Array.Copy(mmf_mask, temp, mmf_mask.Length);
+
+                    maskMutex.ReleaseMutex();
+
+                    maskData.Add(temp);
+
+
+                }
+
+
                 // TIMEOUT
                 DateTime after = DateTime.Now;
                 int delay = after.Millisecond - before.Millisecond;
@@ -765,9 +795,16 @@ namespace wally
         /// </summary>
         private void initMemoryFiles()
         {
-            this.skelFiles = new MemoryMappedFile[this.sensors.Count, 2];
-            this.skelAccess = new MemoryMappedViewAccessor[this.sensors.Count, 2];
-            for (int p = 0; p < this.sensors.Count; p++)
+            int count = this.sensors.Count;
+
+            this.skelFiles = new MemoryMappedFile[count, 2];
+            this.skelAccess = new MemoryMappedViewAccessor[count, 2];
+
+            this.maskFiles = new MemoryMappedFile[count];
+            this.maskAccess = new MemoryMappedViewAccessor[count];
+            this.maskData = new ArrayList();
+
+            for (int p = 0; p < count; p++)
             {
                 // Maximum of two Skeleton. So two Skeletonfiles
                 for (int i = 0; i < 2; i++)
@@ -779,6 +816,9 @@ namespace wally
                     this.skelAccess[p, i] = skelFileTmp.CreateViewAccessor();
                 }
 
+                this.maskFiles[p] = MemoryMappedFile.CreateNew("mask-" + p, MemoryMappedFileCapacityMask);
+                this.maskAccess[p] = this.maskFiles[p].CreateViewAccessor();
+
                 // ... more Memory Files for other Channels.
             }
         }
@@ -789,7 +829,53 @@ namespace wally
         {
 
             this.DrawSkeleton();
+            this.DrawMask();
             this.Painting();
+
+        }
+
+        private void DrawMask()
+        {
+
+
+
+            double dpi = 96;
+            int width = 320;
+            int height = 240;
+            int stride = (width * PixelFormats.Bgra32.BitsPerPixel) / 8;
+            byte[] pixelData = new byte[height * stride];
+
+            // Prepare MaskArray
+
+            byte[] incomingMask = (byte[])this.maskData[0];
+
+            int j = 0;
+            for (int i = 0; i < height * stride; i += (PixelFormats.Bgra32.BitsPerPixel / 8))
+            {
+                pixelData[i] = (byte)100;  // BLUE
+                pixelData[i + 1] = (byte)100; // GREEN
+                pixelData[i + 2] = (byte)100; // RED
+                if (incomingMask[j] != (byte)0)
+                {
+                    pixelData[i + 3] = (byte)100; // ALPHA
+                }
+                else
+                {
+                    pixelData[i + 3] = (byte)0;
+                }
+
+                j++;
+            }
+
+            this.MaskedColor.Source = BitmapSource.Create(
+                width,
+                height,
+                dpi,
+                dpi,
+                PixelFormats.Bgra32,
+                null,
+                pixelData,
+                stride);
 
         }
         /// <summary>

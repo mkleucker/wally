@@ -4,12 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="wally.MainWindow"
         Title="Wally" Loaded="WindowLoaded" Closing="WindowClosing">
     <Grid x:Name="myGrid" Height="480" Width="640">
+
         
+
         <Canvas x:Name="myCanvas">
             <!--<TextBlock Text="You have 60 seconds" FontSize="40" Canvas.Left="188"/>-->
             <Image x:Name="MyImage"/>
         </Canvas>
-        <Image x:Name="MaskedColor" Opacity="0.5"/>
+        
 
         <Canvas x:Name="ColorCanvas">
             <Ellipse Margin="10,10,541,384" Stroke="Black" Width="100" Height="100" Fill="White" />
@@ -17,5 +19,7 @@
             <Ellipse Margin="10,247,541,147" Stroke="Black" Width="100" Height="100" Fill="Red" />
             <Ellipse Margin="10,362,541,32" Stroke="Black" Width="100" Height="100" Fill="Blue" /> 
         </Canvas>
+
+        <Image x:Name="MaskedColor" Width="640" Height="480" Stretch="UniformToFill" />
     </Grid>
 </Window>
