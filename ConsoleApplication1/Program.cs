@@ -33,6 +33,28 @@ namespace KinectCommunication
         private MemoryMappedFile[] files;
         private MemoryMappedViewAccessor[] writers;
 
+
+        // Shadowing the users
+        private const DepthImageFormat DepthFormat = DepthImageFormat.Resolution320x240Fps30;
+
+        private const ColorImageFormat ColorFormat = ColorImageFormat.RgbResolution640x480Fps30;
+
+        private DepthImagePixel[] depthPixels;
+
+        private int[] greenScreenPixelData;
+
+        private byte[] colorPixels;
+
+        private ColorImagePoint[] colorCoordinates;
+
+        private int colorToDepthDivisor;
+
+        private int depthWidth;
+
+        private int depthHeight;
+
+        private int opaquePixelValue = -1;
+
         static void Main(string[] args)
         {
 
@@ -107,6 +129,10 @@ namespace KinectCommunication
         /// </summary>
         private void initSensor()
         {
+
+            // Enable various streams
+            this.sensor.DepthStream.Enable(DepthFormat);
+            this.sensor.ColorStream.Enable(ColorFormat);
             this.sensor.SkeletonStream.Enable(new TransformSmoothParameters()
             {
                 Smoothing = 0.5f,
@@ -116,9 +142,21 @@ namespace KinectCommunication
                 MaxDeviationRadius = 0.1f
             });
 
+            // Setup Vars for Depth and Image
+            this.depthWidth = this.sensor.DepthStream.FrameWidth;
+            this.depthHeight = this.sensor.DepthStream.FrameHeight;
+            int colorWidth = this.sensor.ColorStream.FrameWidth;
+            int colorHeight = this.sensor.ColorStream.FrameHeight;
+            this.colorToDepthDivisor = colorWidth / this.depthWidth;
+            this.depthPixels = new DepthImagePixel[this.sensor.DepthStream.FramePixelDataLength];
+            this.colorPixels = new byte[this.sensor.ColorStream.FramePixelDataLength];
+
+            this.greenScreenPixelData = new int[this.sensor.DepthStream.FramePixelDataLength];
+            this.colorCoordinates = new ColorImagePoint[this.sensor.DepthStream.FramePixelDataLength];
+
             skelToTransfer = new byte[0][];
 
-            this.sensor.SkeletonFrameReady += this.SkeletonFrameReady;
+            this.sensor.AllFramesReady += this.SensorAllFramesReady;
 
             try
             {
@@ -136,7 +174,7 @@ namespace KinectCommunication
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
+        private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs e)
         {
 
             Skeleton[] skeletons = new Skeleton[0];
@@ -151,6 +189,7 @@ namespace KinectCommunication
             }
 
 
+            // PROCESS THE SKELETONS
             if (skeletons.Length != 0)
             {
 
@@ -188,9 +227,103 @@ namespace KinectCommunication
                     this.skelToTransfer = new byte[0][];
                 }
 
-
             }
 
+            bool depthReceived = false;
+
+            using (DepthImageFrame depthFrame = e.OpenDepthImageFrame())
+            {
+                if (null != depthFrame)
+                {
+                    // Copy the pixel data from the image to a temporary array
+                    depthFrame.CopyDepthImagePixelDataTo(this.depthPixels);
+
+                    depthReceived = true;
+                }
+            }
+
+            bool colorReceived = false;
+
+            using (ColorImageFrame colorFrame = e.OpenColorImageFrame())
+            {
+                if (null != colorFrame)
+                {
+                    // Copy the pixel data from the image to a temporary array
+                    colorFrame.CopyPixelDataTo(this.colorPixels);
+
+                    colorReceived = true;
+                }
+            }
+
+
+
+            // do our processing outside of the using block
+            // so that we return resources to the kinect as soon as possible
+            if (true == depthReceived)
+            {
+                this.sensor.CoordinateMapper.MapDepthFrameToColorFrame(
+                    DepthFormat,
+                    this.depthPixels,
+                    ColorFormat,
+                    this.colorCoordinates);
+
+                Array.Clear(this.greenScreenPixelData, 0, this.greenScreenPixelData.Length);
+
+                // loop over each row and column of the depth
+                for (int y = 0; y < this.depthHeight; ++y)
+                {
+                    for (int x = 0; x < this.depthWidth; ++x)
+                    {
+                        // calculate index into depth array
+                        int depthIndex = x + (y * this.depthWidth);
+
+                        DepthImagePixel depthPixel = this.depthPixels[depthIndex];
+
+                        int player = depthPixel.PlayerIndex;
+
+                        // if we're tracking a player for the current pixel, do green screen
+                        if (player > 0)
+                        {
+                            // retrieve the depth to color mapping for the current depth pixel
+                            ColorImagePoint colorImagePoint = this.colorCoordinates[depthIndex];
+
+                            // scale color coordinates to depth resolution
+                            int colorInDepthX = colorImagePoint.X / this.colorToDepthDivisor;
+                            int colorInDepthY = colorImagePoint.Y / this.colorToDepthDivisor;
+
+                            // make sure the depth pixel maps to a valid point in color space
+                            // check y > 0 and y < depthHeight to make sure we don't write outside of the array
+                            // check x > 0 instead of >= 0 since to fill gaps we set opaque current pixel plus the one to the left
+                            // because of how the sensor works it is more correct to do it this way than to set to the right
+                            if (colorInDepthX > 0 && colorInDepthX < this.depthWidth && colorInDepthY >= 0 && colorInDepthY < this.depthHeight)
+                            {
+                                // calculate index into the green screen pixel array
+                                int greenScreenIndex = colorInDepthX + (colorInDepthY * this.depthWidth);
+
+                                // set opaque
+                                this.greenScreenPixelData[greenScreenIndex] = opaquePixelValue;
+
+                                // compensate for depth/color not corresponding exactly by setting the pixel 
+                                // to the left to opaque as well
+                                this.greenScreenPixelData[greenScreenIndex - 1] = opaquePixelValue;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // do our processing outside of the using block
+            // so that we return resources to the kinect as soon as possible
+            if (true == colorReceived)
+            {
+
+                for (int i = 0; i < colorPixels.Length - 1; i++)
+                {
+                    colorPixels[i] = 0x77;
+                }
+
+
+            }
 
         }
 
