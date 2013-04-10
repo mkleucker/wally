@@ -169,9 +169,10 @@ namespace wally
         public MainWindow()
         {
             InitializeComponent();
-            //this.WindowStyle = WindowStyle.None;
-            //this.WindowState = WindowState.Maximized;
-            //this.Cursor = System.Windows.Input.Cursors.None;
+
+            this.WindowStyle = WindowStyle.None;
+            this.WindowState = WindowState.Maximized;
+            this.Cursor = System.Windows.Input.Cursors.None;
         }
 
 
@@ -253,9 +254,17 @@ namespace wally
         /// </summary>
         private void windowSetUp()
         {
-            this.Background = new RadialGradientBrush(Color.FromRgb(100, 100, 100), Color.FromRgb(50, 50, 50));
-            this.Width = this.processes.Count * 640;
 
+            double screenWidth = System.Windows.SystemParameters.VirtualScreenWidth;
+            double screenHeight = System.Windows.SystemParameters.VirtualScreenHeight;
+
+            this.Width = screenWidth;
+            this.Height = screenHeight;
+
+            this.Background = new RadialGradientBrush(Color.FromRgb(100, 100, 100), Color.FromRgb(50, 50, 50));
+
+            this.myGrid.Width = screenWidth;
+            this.myGrid.Height = screenHeight;
         }
 
         private void PaintingTimer()
@@ -423,6 +432,8 @@ namespace wally
 
                     System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
 
+                    Point1 = this.stretchPointToScreen(Point1);
+
                     //As long as the hand is nearer to the screen than the user's body -> painting 
                     //As soon as the hand is further away from the screen than the user's body  -> not painting
                     if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.1 && currentLine.Points.Count > 1)
@@ -488,6 +499,8 @@ namespace wally
                     //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
                     //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
                     Point p = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
+
+                    p = this.stretchPointToScreen(p);
                     dc.DrawImage(
                             this.canImg,
                             new Rect(p.X - 50, p.Y, 50, 50)
@@ -495,8 +508,7 @@ namespace wally
 
                 }
 
-
-                this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+                this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.Width, this.Height));
             }
         }
 
@@ -623,6 +635,15 @@ namespace wally
             return new Point(depthPoint.X, depthPoint.Y);
         }
 
+        private Point stretchPointToScreen(Point point)
+        {
+            Point screenPoint = new Point();
+            screenPoint.X = point.X * this.ActualWidth / 640.0;
+            screenPoint.Y = point.Y * this.ActualHeight / 480.0;
+            return screenPoint;
+
+        }
+
 
 
         /// <summary>
@@ -705,16 +726,18 @@ namespace wally
 
             // ****************
             // SKELETON-MAPPING
-            // ****************
-
-
+            // ***************
 
 
             bool empty = false;
 
+            Stopwatch stopwatch = new Stopwatch();
+
             while (true)
             {
-                DateTime before = DateTime.Now;
+
+                stopwatch.Reset();
+                stopwatch.Start();
 
                 // Gather the skeletons
                 this.skelData = new ArrayList();
@@ -767,6 +790,7 @@ namespace wally
 
                 }
 
+                long trackDelay = stopwatch.ElapsedMilliseconds;
                 // Get The Mask
 
                 maskData.Clear();
@@ -790,11 +814,10 @@ namespace wally
                 }
 
 
-                // TIMEOUT
-                DateTime after = DateTime.Now;
-                int delay = after.Millisecond - before.Millisecond;
-                int fill = 33 - delay;
-                if (fill > 0) Thread.Sleep(fill);
+                if (stopwatch.ElapsedMilliseconds < 33)
+                {
+                    Thread.Sleep((int)(33.0 - stopwatch.ElapsedMilliseconds));
+                }
 
                 // After all: REPAINT TIME!!!
                 Dispatcher.Invoke(DispatcherPriority.Send,
@@ -819,19 +842,24 @@ namespace wally
             this.maskAccess = new MemoryMappedViewAccessor[count];
             this.maskData = new ArrayList();
 
+            string filename;
+
             for (int p = 0; p < count; p++)
             {
                 // Maximum of two Skeleton. So two Skeletonfiles
                 for (int i = 0; i < 2; i++)
                 {
-                    Console.WriteLine("Created :" + "skel-" + p + "-" + i);
-                    MemoryMappedFile skelFileTmp = MemoryMappedFile.CreateNew("skel-" + p + "-" + i, MemoryMappedFileCapacitySkeleton);
+                    filename = "skel-" + p + "-" + i;
+                    Console.WriteLine("Created : " + filename);
+                    MemoryMappedFile skelFileTmp = MemoryMappedFile.CreateNew(filename, MemoryMappedFileCapacitySkeleton);
 
                     this.skelFiles[p, i] = skelFileTmp;
                     this.skelAccess[p, i] = skelFileTmp.CreateViewAccessor();
                 }
 
-                this.maskFiles[p] = MemoryMappedFile.CreateNew("mask-" + p, MemoryMappedFileCapacityMask);
+                filename = "mask-" + p;
+                Console.WriteLine("Created : " + filename);
+                this.maskFiles[p] = MemoryMappedFile.CreateNew(filename, MemoryMappedFileCapacityMask);
                 this.maskAccess[p] = this.maskFiles[p].CreateViewAccessor();
 
                 // ... more Memory Files for other Channels.
@@ -858,30 +886,35 @@ namespace wally
             int width = 320;
             int height = 240;
             int stride = (width * PixelFormats.Bgra32.BitsPerPixel) / 8;
-            byte[] pixelData = new byte[height * stride];
+            byte[] pixelData = new byte[height * stride * this.maskData.Count];
 
             // Prepare MaskArray
 
-
-            byte[] incomingMask = (byte[])this.maskData[0];
-
-            int j = 0;
-            for (int i = 0; i < height * stride; i += (PixelFormats.Bgra32.BitsPerPixel / 8))
+            for (int mask = 0; mask < this.maskData.Count; mask++)
             {
-                pixelData[i] = (byte)100;  // BLUE
-                pixelData[i + 1] = (byte)100; // GREEN
-                pixelData[i + 2] = (byte)100; // RED
-                if (incomingMask[j] != (byte)0)
-                {
-                    pixelData[i + 3] = (byte)100; // ALPHA
-                }
-                else
-                {
-                    pixelData[i + 3] = (byte)0;
-                }
+                int factor = (mask > 0) ? mask * stride : 0;
 
-                j++;
+                byte[] incomingMask = (byte[])this.maskData[mask];
+
+                int j = 0;
+                for (int i = 0; i < height * stride; i += (PixelFormats.Bgra32.BitsPerPixel / 8))
+                {
+                    pixelData[factor + i] = (byte)100;  // BLUE
+                    pixelData[factor + i + 1] = (byte)100; // GREEN
+                    pixelData[factor + i + 2] = (byte)100; // RED
+                    if (incomingMask[j] != (byte)0)
+                    {
+                        pixelData[factor + i + 3] = (byte)100; // ALPHA
+                    }
+                    else
+                    {
+                        pixelData[factor + i + 3] = (byte)0;
+                    }
+
+                    j++;
+                }
             }
+
 
             this.MaskedColor.Source = BitmapSource.Create(
                 width,
@@ -893,6 +926,26 @@ namespace wally
                 pixelData,
                 stride);
 
+        }
+
+
+
+        /// <summary>
+        /// Keyhandler to kill the application. 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void KeyDownEventHandler(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                foreach (Process p in this.processes)
+                {
+                    p.Kill();
+                }
+                Application.Current.Shutdown();
+                Environment.Exit(0);
+            }
         }
         /// <summary>
         /// Event handler for Kinect sensor's DepthFrameReady event
