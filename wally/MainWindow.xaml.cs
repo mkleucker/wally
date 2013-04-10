@@ -170,8 +170,8 @@ namespace wally
         {
             InitializeComponent();
 
-            this.WindowStyle = WindowStyle.None;
-            this.WindowState = WindowState.Maximized;
+            //this.WindowStyle = WindowStyle.None;
+            //this.WindowState = WindowState.Maximized;
             this.Cursor = System.Windows.Input.Cursors.None;
         }
 
@@ -188,8 +188,8 @@ namespace wally
             this.DeviceCount = KinectSensor.KinectSensors.Count;
 
 
-            Dispatcher.Invoke(DispatcherPriority.Send,
-                            new Action(PaintingTimer));
+            // Dispatcher.Invoke(DispatcherPriority.Send,
+            //               new Action(PaintingTimer));
 
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
@@ -241,12 +241,9 @@ namespace wally
 
 
             this.shadowBitmap = new WriteableBitmap(320, 240, 96.0, 96.0, PixelFormats.Bgra32, null);
-            this.canImg = new BitmapImage();
 
-            this.canImg.BeginInit();
-            this.canImg.UriSource = new Uri("can.png", UriKind.Relative);
-            this.canImg.CacheOption = BitmapCacheOption.OnLoad;
-            this.canImg.EndInit();
+            this.canImg = new BitmapImage(new Uri("Resources/Can.png", UriKind.Relative));
+
         }
 
         /// <summary>
@@ -577,7 +574,7 @@ namespace wally
         private void DrawLine(System.Windows.Media.Brush lineColor, double lineThickness)
         {
 
-            System.Console.WriteLine(myPonyLines.Count);
+            //System.Console.WriteLine(myPonyLines.Count);
             if (PaintingTimeOver)
             {
                 SaveLinesAsImage();
@@ -610,8 +607,8 @@ namespace wally
             {
 
                 currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-                Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
-                Console.WriteLine("Number of Lines:" + myPonyLines.Count);
+                //Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
+                //Console.WriteLine("Number of Lines:" + myPonyLines.Count);
                 Polyline newLine = new Polyline();
                 newLine.Stroke = lineColor;
                 newLine.StrokeThickness = lineThickness;
