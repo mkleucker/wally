@@ -42,6 +42,10 @@ namespace wally
         private const float RenderWidth = 640.0f;
         private const float RenderHeight = 480.0f;
 
+        //Width and Height of Colorpalette (Change here if necessary!!)
+        private float bucketsWidth = 150;
+        private float bucketsHeight = 675;
+
         //Line that is drawn by right hand of the user
         private Polyline myPolyline;
         private Polyline currentLine;
@@ -51,8 +55,6 @@ namespace wally
         private String lastPngImage;
 
         private int currentStroke = 2; //1 = thick 2 = thin
-
-        private bool colorChangingMode = false;
 
         private ArrayList myPonyLines;
 
@@ -75,70 +77,13 @@ namespace wally
         private DrawingImage imageSource; //draw image that we will display
 
 
-        //########## OLD Greenscreen Stuff
-        //###########################
-        ///// <summary>
-        ///// Format we will use for the depth stream
-        ///// </summary>
-        //private const DepthImageFormat DepthFormat = DepthImageFormat.Resolution320x240Fps30;
-
-        ///// <summary>
-        ///// Format we will use for the color stream
-        ///// </summary>
-        //private const ColorImageFormat ColorFormat = ColorImageFormat.RgbResolution640x480Fps30;
-
         ///// <summary>
         ///// Bitmap that will hold color information
         ///// </summary>
         private WriteableBitmap shadowBitmap;
 
-        ///// <summary>
-        ///// Bitmap that will hold opacity mask information
-        ///// </summary>
-        //private WriteableBitmap playerOpacityMaskImage = null;
-
-        ///// <summary>
-        ///// Intermediate storage for the depth data received from the sensor
-        ///// </summary>
-        //private DepthImagePixel[] depthPixels;
-
-        ///// <summary>
-        ///// Intermediate storage for the color data received from the camera
-        ///// </summary>
-        //private byte[] colorPixels;
-
-        ///// <summary>
-        ///// Intermediate storage for the green screen opacity mask
-        ///// </summary>
-        //private int[] greenScreenPixelData;
-
-        ///// <summary>
-        ///// Intermediate storage for the depth to color mapping
-        ///// </summary>
-        //private ColorImagePoint[] colorCoordinates;
-
-        ///// <summary>
-        ///// Inverse scaling factor between color and depth
-        ///// </summary>
-        //private int colorToDepthDivisor;
-
-        ///// <summary>
-        ///// Width of the depth image
-        ///// </summary>
-        //private int depthWidth;
-
-        ///// <summary>
-        ///// Height of the depth image
-        ///// </summary>
-        //private int depthHeight;
-
-        ///// <summary>
-        ///// Indicates opaque in an opacity mask
-        ///// </summary>
-        //private int opaquePixelValue = -1;
-
-
         private BitmapImage canImg;
+        private BitmapImage paintingColorsImg;
 
 
 
@@ -243,7 +188,8 @@ namespace wally
             this.shadowBitmap = new WriteableBitmap(320, 240, 96.0, 96.0, PixelFormats.Bgra32, null);
 
             this.canImg = new BitmapImage(new Uri("Resources/Can.png", UriKind.Relative));
-
+            this.paintingColorsImg = new BitmapImage(new Uri("Resources/paintingColorsImg.png", UriKind.Relative));
+           
         }
 
         /// <summary>
@@ -339,36 +285,6 @@ namespace wally
             }
         }
 
-        /// <summary>
-        /// Animate the "Paintbuckets" to stay near the user
-        /// </summary>
-        /// <param name="newPosition">Position of the Skeleton, to attach Paintbuckets to it </param>
-        private void AnimateColors(Point newPosition)
-        {
-            // Create a new animation with start and end values, duration and
-            // an optional completion handler.
-            DoubleAnimation da = new DoubleAnimation();
-            da.From = 0;
-            da.To = (newPosition.X - 200);
-            // da.Duration = new Duration(TimeSpan.FromSeconds(1));
-            //da.Completed += new EventHandler(animationCompleted); // easy syntax without parameters
-            da.Completed += (sender, eArgs) => animationCompleted(ColorCanvas, newPosition); // syntax with parameters
-
-            // Start animating the x-translation 
-            TranslateTransform rt = new TranslateTransform();
-            ColorCanvas.RenderTransform = rt;
-            rt.BeginAnimation(TranslateTransform.XProperty, da);
-        }
-
-        /// <summary>
-        /// EventHandler for the ColorBucket-Animation 
-        /// </summary>
-        /// <param name="myCanvas">Canvas that is animated, containing the paintbucket ellipses</param>
-        /// <param name="newPosition">Position of the Skeleton, to attach Paintbuckets to it </param>
-        private void animationCompleted(Canvas myCanvas, Point newPosition)
-        {
-            myCanvas.Margin = new Thickness((newPosition.X - 200), 0, 0, 0);
-        }
 
         /// <summary>
         /// Manage the selection of different colors
@@ -378,41 +294,52 @@ namespace wally
 
             double leftHandY = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).Y;
             double leftHandX = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).X;
-            double windowHeight = this.ActualHeight;
-            double windowWidth = this.ActualWidth;
-            double xCoordPart = windowWidth / 5; //Area for Colorselection
-            double yCoordSteps = windowHeight / 4; //amount of colors used, currently 4 
+            Point playerPosition = this.SkeletonPointToScreen(skel.Position);
+            double xCoord1 = playerPosition.X - 100;
+            double xCoord2 = playerPosition.X - 100 - bucketsWidth;
+            double yCoordSteps = bucketsHeight / 6; //amount of colors used, currently 6 
+            double yCoordStart = 5; //Wird z.T. noch negativ (Skeleton Point to Screen Fehler bei Hand!!)
 
-            if (leftHandX < xCoordPart)
+            System.Console.WriteLine("playerPosition" + playerPosition);
+            System.Console.WriteLine("playerPosition.Y" + playerPosition.Y);
+            System.Console.WriteLine("yCoordStart" + yCoordStart);
+            System.Console.WriteLine("yCoordSteps" + yCoordSteps);
+
+            if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps && leftHandX < xCoord1 && leftHandX > xCoord2 
+                && currentLine.Stroke != System.Windows.Media.Brushes.White)
             {
-                colorChangingMode = true;
+                 DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
             }
-            else if (leftHandX >= xCoordPart)
+            if (leftHandY >= yCoordStart + yCoordSteps && leftHandY < yCoordStart + 2 * yCoordSteps 
+                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                currentLine.Stroke != System.Windows.Media.Brushes.Blue)
             {
-                colorChangingMode = false;
+                DrawLine(System.Windows.Media.Brushes.Blue, currentLine.StrokeThickness);
             }
-
-            if (colorChangingMode)
+            if (leftHandY >= yCoordStart + 2 * yCoordSteps && leftHandY < yCoordStart + 3 * yCoordSteps
+                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                currentLine.Stroke != System.Windows.Media.Brushes.Yellow)
             {
-
-                if (leftHandY >= 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Blue)
-                {
-                    DrawLine(System.Windows.Media.Brushes.Blue, currentLine.StrokeThickness);
-                }
-                if (leftHandY >= 2 * yCoordSteps && leftHandY < 3 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Red)
-                {
-                    DrawLine(System.Windows.Media.Brushes.Red, currentLine.StrokeThickness);
-                }
-                if (leftHandY >= yCoordSteps && leftHandY < 2 * yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.Yellow)
-                {
-                    DrawLine(System.Windows.Media.Brushes.Yellow, currentLine.StrokeThickness);
-                }
-                if (leftHandY >= 0 && leftHandY < yCoordSteps && currentLine.Stroke != System.Windows.Media.Brushes.White)
-                {
-                    DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
-                }
+                DrawLine(System.Windows.Media.Brushes.Yellow, currentLine.StrokeThickness);
             }
-
+            if (leftHandY >= yCoordStart + 3 * yCoordSteps && leftHandY < yCoordStart + 4 * yCoordSteps
+                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                currentLine.Stroke != System.Windows.Media.Brushes.Green)
+            {
+                DrawLine(System.Windows.Media.Brushes.Green, currentLine.StrokeThickness);
+            }
+            if (leftHandY >= yCoordStart + 4 * yCoordSteps && leftHandY < yCoordStart + 5 * yCoordSteps
+                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                currentLine.Stroke != System.Windows.Media.Brushes.Red)
+            {
+                DrawLine(System.Windows.Media.Brushes.Red, currentLine.StrokeThickness);
+            }
+            if (leftHandY >= yCoordStart + 5 * yCoordSteps && leftHandY < yCoordStart + 6 * yCoordSteps
+                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                currentLine.Stroke != System.Windows.Media.Brushes.Black)
+            {
+                DrawLine(System.Windows.Media.Brushes.Black, currentLine.StrokeThickness);
+            }
         }
 
         private void Painting()
@@ -496,11 +423,16 @@ namespace wally
                     //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
                     //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
                     Point p = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
+                    Point playerPosition = this.SkeletonPointToScreen(skel.Position);
 
                     p = this.stretchPointToScreen(p);
                     dc.DrawImage(
                             this.canImg,
                             new Rect(p.X - 50, p.Y, 50, 50)
+                        );
+                    dc.DrawImage(
+                            this.paintingColorsImg,
+                            new Rect(playerPosition.X - 100, 5, bucketsWidth, bucketsHeight)
                         );
 
                 }
@@ -944,136 +876,7 @@ namespace wally
                 Environment.Exit(0);
             }
         }
-        /// <summary>
-        /// Event handler for Kinect sensor's DepthFrameReady event
-        /// </summary>
-        /// <param name="sender">object sending the event</param>
-        /// <param name="e">event arguments</param>
-        //private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs e)
-        //{
-        //    // in the middle of shutting down, so nothing to do
-        //    if (null == this.sensor)
-        //    {
-        //        return;
-        //    }
-
-        //    bool depthReceived = false;
-        //    bool colorReceived = false;
-
-        //    using (DepthImageFrame depthFrame = e.OpenDepthImageFrame())
-        //    {
-        //        if (null != depthFrame)
-        //        {
-        //            // Copy the pixel data from the image to a temporary array
-        //            depthFrame.CopyDepthImagePixelDataTo(this.depthPixels);
-
-        //            depthReceived = true;
-        //        }
-        //    }
-
-        //    using (ColorImageFrame colorFrame = e.OpenColorImageFrame())
-        //    {
-        //        if (null != colorFrame)
-        //        {
-        //            // Copy the pixel data from the image to a temporary array
-        //            colorFrame.CopyPixelDataTo(this.colorPixels);
-
-        //            colorReceived = true;
-        //        }
-        //    }
-
-        //    // do our processing outside of the using block
-        //    // so that we return resources to the kinect as soon as possible
-        //    if (true == depthReceived)
-        //    {
-        //        this.sensor.CoordinateMapper.MapDepthFrameToColorFrame(
-        //            DepthFormat,
-        //            this.depthPixels,
-        //            ColorFormat,
-        //            this.colorCoordinates);
-
-        //        Array.Clear(this.greenScreenPixelData, 0, this.greenScreenPixelData.Length);
-
-        //        // loop over each row and column of the depth
-        //        for (int y = 0; y < this.depthHeight; ++y)
-        //        {
-        //            for (int x = 0; x < this.depthWidth; ++x)
-        //            {
-        //                // calculate index into depth array
-        //                int depthIndex = x + (y * this.depthWidth);
-
-        //                DepthImagePixel depthPixel = this.depthPixels[depthIndex];
-
-        //                int player = depthPixel.PlayerIndex;
-
-        //                // if we're tracking a player for the current pixel, do green screen
-        //                if (player > 0)
-        //                {
-        //                    // retrieve the depth to color mapping for the current depth pixel
-        //                    ColorImagePoint colorImagePoint = this.colorCoordinates[depthIndex];
-
-        //                    // scale color coordinates to depth resolution
-        //                    int colorInDepthX = colorImagePoint.X / this.colorToDepthDivisor;
-        //                    int colorInDepthY = colorImagePoint.Y / this.colorToDepthDivisor;
-
-        //                    // make sure the depth pixel maps to a valid point in color space
-        //                    // check y > 0 and y < depthHeight to make sure we don't write outside of the array
-        //                    // check x > 0 instead of >= 0 since to fill gaps we set opaque 
-        // current pixel plus the one to the left
-        //                    // because of how the sensor works it is more correct to do it this way than to set to the right
-        //                    if (colorInDepthX > 0 && colorInDepthX < this.depthWidth && colorInDepthY >= 0 && colorInDepthY < this.depthHeight)
-        //                    {
-        //                        // calculate index into the green screen pixel array
-        //                        int greenScreenIndex = colorInDepthX + (colorInDepthY * this.depthWidth);
-
-        //                        // set opaque
-        //                        this.greenScreenPixelData[greenScreenIndex] = opaquePixelValue;
-
-        //                        // compensate for depth/color not corresponding exactly by setting the pixel 
-        //                        // to the left to opaque as well
-        //                        this.greenScreenPixelData[greenScreenIndex - 1] = opaquePixelValue;
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-
-        //    // do our processing outside of the using block
-        //    // so that we return resources to the kinect as soon as possible
-        //    if (true == colorReceived)
-        //    {
-
-        //        for (int i = 0; i < colorPixels.Length - 1; i++) {
-        //            colorPixels[i] = 0x77;
-        //        } 
-
-        //        // Write the pixel data into our bitmap
-        //        this.colorBitmap.WritePixels(
-        //            new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight),
-        //            this.colorPixels,
-        //            this.colorBitmap.PixelWidth * sizeof(int),
-        //            0);
-
-        //        if (this.playerOpacityMaskImage == null)
-        //        {
-        //            this.playerOpacityMaskImage = new WriteableBitmap(
-        //                this.depthWidth,
-        //                this.depthHeight,
-        //                96,
-        //                96,
-        //                PixelFormats.Bgra32,
-        //                null);
-
-        //            MaskedColor.OpacityMask = new ImageBrush { ImageSource = this.playerOpacityMaskImage };
-        //        }
-
-        //        this.playerOpacityMaskImage.WritePixels(
-        //            new Int32Rect(0, 0, this.depthWidth, this.depthHeight),
-        //            this.greenScreenPixelData,
-        //            this.depthWidth * ((this.playerOpacityMaskImage.Format.BitsPerPixel + 7) / 8),
-        //            0);
-        //    }
-        //}
+ 
 
     }
 }

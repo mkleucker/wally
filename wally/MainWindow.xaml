@@ -12,14 +12,6 @@
         </Canvas>
         <TextBlock x:Name ="myTimer" FontSize="40" Canvas.Right="10" Canvas.Top ="10"
                    Width="100" Height="40" Foreground="White" />
-
-        <Canvas x:Name="ColorCanvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-            <Ellipse Margin="10,10,541,384" Stroke="Black" Width="100" Height="100" Fill="White" />
-            <Ellipse Margin="10,127,541,267" Stroke="Black" Width="100" Height="100" Fill="Yellow" />
-            <Ellipse Margin="10,247,541,147" Stroke="Black" Width="100" Height="100" Fill="Red" />
-            <Ellipse Margin="10,362,541,32" Stroke="Black" Width="100" Height="100" Fill="Blue" /> 
-        </Canvas>
-
         <Image x:Name="MaskedColor" Stretch="UniformToFill" />
     </Grid>
 </Window>
