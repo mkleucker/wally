@@ -137,23 +137,24 @@ namespace wally
         ///// </summary>
         //private int opaquePixelValue = -1;
 
-        // Mutex
-        static long MemoryMappedFileCapacitySkeleton = 2255;
-        static long MemoryMappedFileCapacityMask = 307200;
+
+        private BitmapImage canImg;
 
 
-        private byte[] mmf_result;
-
-        private byte[] mmf_mask;
 
         // Using Two Kinects
         private ArrayList processes;
-
 
         private Skeleton skel;
 
 
         // INTERNAL DATA STRUCTURE
+
+        // Mutex
+        static long MemoryMappedFileCapacitySkeleton = 2255;
+        static long MemoryMappedFileCapacityMask = 307200;
+        private byte[] mmf_result;
+        private byte[] mmf_mask;
 
         private MemoryMappedFile[,] skelFiles;
         private MemoryMappedViewAccessor[,] skelAccess;
@@ -226,6 +227,8 @@ namespace wally
                 i++;
             }
 
+            this.windowSetUp();
+
             //Init Polyline
             myPolyline = new Polyline();
             myPolyline.Stroke = System.Windows.Media.Brushes.White;
@@ -236,44 +239,27 @@ namespace wally
             myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
 
 
-            //#### OLD This was for the GreenScreen stuff 
-            //######################
-            //    // Turn on the depth stream to receive depth frames
-            //    this.sensor.DepthStream.Enable(DepthFormat);
-
-            //    this.depthWidth = this.sensor.DepthStream.FrameWidth;
-
-            //    this.depthHeight = this.sensor.DepthStream.FrameHeight;
-
-            //    this.sensor.ColorStream.Enable(ColorFormat);
-
-            //    int colorWidth = this.sensor.ColorStream.FrameWidth;
-            //    int colorHeight = this.sensor.ColorStream.FrameHeight;
-
-            //    this.colorToDepthDivisor = colorWidth / this.depthWidth;
-
-            //    // Allocate space to put the depth pixels we'll receive
-            //    this.depthPixels = new DepthImagePixel[this.sensor.DepthStream.FramePixelDataLength];
-
-            //    // Allocate space to put the color pixels we'll create
-            //    this.colorPixels = new byte[this.sensor.ColorStream.FramePixelDataLength];
-
-            //    this.greenScreenPixelData = new int[this.sensor.DepthStream.FramePixelDataLength];
-
-            //    this.colorCoordinates = new ColorImagePoint[this.sensor.DepthStream.FramePixelDataLength];
-
-            //    // This is the bitmap we'll display on-screen
             this.shadowBitmap = new WriteableBitmap(320, 240, 96.0, 96.0, PixelFormats.Bgra32, null);
+            this.canImg = new BitmapImage();
 
-            //    // Set the image we display to point to the bitmap where we'll put the image data
-            //    this.MaskedColor.Source = this.colorBitmap;
+            this.canImg.BeginInit();
+            this.canImg.UriSource = new Uri("can.png", UriKind.Relative);
+            this.canImg.CacheOption = BitmapCacheOption.OnLoad;
+            this.canImg.EndInit();
+        }
 
-            //    // Add an event handler to be called whenever there is new depth frame data
-            //    this.sensor.AllFramesReady += this.SensorAllFramesReady;
+        /// <summary>
+        /// Set Correct Sizes to Window
+        /// </summary>
+        private void windowSetUp()
+        {
+            this.Background = new RadialGradientBrush(Color.FromRgb(100, 100, 100), Color.FromRgb(50, 50, 50));
+            this.Width = this.processes.Count * 640;
 
         }
 
-        private void PaintingTimer() {
+        private void PaintingTimer()
+        {
             CountDownClock(60, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
         }
 
@@ -298,7 +284,7 @@ namespace wally
             };
             ts(count);
             dispatchTimer.Start();
-        
+
             //String timerText = timerValue.ToString();
             //TextBlock myTimer = new TextBlock();
             //myTimer.Height = 50;
@@ -358,7 +344,7 @@ namespace wally
             DoubleAnimation da = new DoubleAnimation();
             da.From = 0;
             da.To = (newPosition.X - 200);
-           // da.Duration = new Duration(TimeSpan.FromSeconds(1));
+            // da.Duration = new Duration(TimeSpan.FromSeconds(1));
             //da.Completed += new EventHandler(animationCompleted); // easy syntax without parameters
             da.Completed += (sender, eArgs) => animationCompleted(ColorCanvas, newPosition); // syntax with parameters
 
@@ -446,8 +432,8 @@ namespace wally
 
                     //When the hand is near to the screen (if-case) the line gets thicker
 
-                    if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.8 
-                        && skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.3 
+                    if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.8
+                        && skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.3
                         && currentLine.Points.Count > 1)
                     {
                         if (currentStroke == 2)
@@ -461,7 +447,7 @@ namespace wally
                     }
 
                     //When the hand is further away from the screen (else if - case) the line gets thinner
-                    else if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.3 
+                    else if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.3
                         && currentLine.Points.Count > 1)
                     {
                         if (currentStroke == 1)
@@ -490,17 +476,22 @@ namespace wally
         {
             using (DrawingContext dc = this.drawingGroup.Open())
             {
-                dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+                dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
 
                 foreach (Skeleton skel in this.skelData)
                 {
-                    this.DrawBonesAndJoints(skel, dc);
-                    dc.DrawEllipse(
-                        this.centerPointBrush,
-                        null,
-                        this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position),
-                        BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
-                        BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
+                    //this.DrawBonesAndJoints(skel, dc);
+                    //dc.DrawEllipse(
+                    //    this.centerPointBrush,
+                    //    null,
+                    //    this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position),
+                    //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
+                    //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
+                    Point p = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
+                    dc.DrawImage(
+                            this.canImg,
+                            new Rect(p.X - 50, p.Y, 50, 50)
+                        );
 
                 }
 
@@ -802,7 +793,7 @@ namespace wally
                 // TIMEOUT
                 DateTime after = DateTime.Now;
                 int delay = after.Millisecond - before.Millisecond;
-                int fill = 100 - delay;
+                int fill = 33 - delay;
                 if (fill > 0) Thread.Sleep(fill);
 
                 // After all: REPAINT TIME!!!
@@ -870,6 +861,7 @@ namespace wally
             byte[] pixelData = new byte[height * stride];
 
             // Prepare MaskArray
+
 
             byte[] incomingMask = (byte[])this.maskData[0];
 
@@ -977,7 +969,7 @@ namespace wally
         //                    // make sure the depth pixel maps to a valid point in color space
         //                    // check y > 0 and y < depthHeight to make sure we don't write outside of the array
         //                    // check x > 0 instead of >= 0 since to fill gaps we set opaque 
-                                // current pixel plus the one to the left
+        // current pixel plus the one to the left
         //                    // because of how the sensor works it is more correct to do it this way than to set to the right
         //                    if (colorInDepthX > 0 && colorInDepthX < this.depthWidth && colorInDepthY >= 0 && colorInDepthY < this.depthHeight)
         //                    {

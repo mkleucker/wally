@@ -3,11 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="wally.MainWindow"
         Title="Wally" Loaded="WindowLoaded" Closing="WindowClosing">
-    <Grid x:Name="myGrid" Height="480" Width="640">
+    <Grid x:Name="myGrid" Height="480" Width="640"  Background="Transparent">
         
         
 
-        <Canvas x:Name="myCanvas">
+        <Canvas x:Name="myCanvas" Background="Transparent">
             <Image x:Name="MyImage"/>
         </Canvas>
         <TextBlock x:Name ="myTimer" FontSize="40" Canvas.Left="558" Foreground="White" Margin="580,0,0,0"/>

@@ -403,7 +403,7 @@ namespace KinectCommunication
 
                     DateTime after = DateTime.Now;
                     int delay = after.Millisecond - before.Millisecond;
-                    int fill = 100 - delay;
+                    int fill = 33 - delay;
                     if (fill > 0) Thread.Sleep(fill);
 
                 }
