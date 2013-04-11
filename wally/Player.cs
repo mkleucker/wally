@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Shapes;
+using System.Windows.Controls;
 
 namespace wally
 {
@@ -17,10 +18,11 @@ namespace wally
         private Polyline currentLine;
         private Skeleton mySkel;
         private int kinectProcessID;
-        private System.Windows.Point NewPoint;
+       // private System.Windows.Point NewPoint;
         private System.Windows.Media.Brush currentColor;
         private double currentStroke;
-
+        private Canvas myCanvas;
+        private String lastPngImage;
 
         public Player(int ID, Skeleton skel, Polyline line)
         {
@@ -30,12 +32,13 @@ namespace wally
             this.mySkel = skel;
             this.kinectProcessID = ID;
             this.myPonylines = new ArrayList();
+            this.myCanvas = new Canvas();
         }
 
         public void addLine(Polyline line)
         {
             this.myPonylines.Add(line);
-            this.currentLine = line;
+            this.setCurrentLine(line);
         }
         public Polyline getCurrentLine()
         {
@@ -49,24 +52,30 @@ namespace wally
         {
             return this.currentStroke;
         }
-        public System.Windows.Point getPoint()
-        {
-            return this.NewPoint;
-        }
+        //public System.Windows.Point getPoint()
+        //{
+        //    return this.NewPoint;
+        //}
         public void setCurrentLine(Polyline line)
         {
             this.currentLine = line;
             this.currentColor = line.Stroke;
             this.currentStroke = line.StrokeThickness;
         }
+        public void setLastPngImg(String path) {
+            this.lastPngImage = path;
+        }
+        public String getLastPngImg() {
+            return this.lastPngImage;
+        }
         public void setCurrentColor(System.Windows.Media.Brush brush)
         {
             this.currentColor = brush;
         }
-        public void setPoint(System.Windows.Point point)
-        {
-            this.NewPoint = point;
-        }
+        //public void setPoint(System.Windows.Point point)
+        //{
+        //    this.NewPoint = point;
+        //}
         public void setCurrentStroke(double stroke)
         {
             this.currentStroke = stroke;
@@ -91,6 +100,9 @@ namespace wally
         public int getPonyCount()
         {
             return this.myPonylines.Count;
+        }
+        public Canvas getMyCanvas() {
+            return this.myCanvas;
         }
         public void addPointToCurrentLine(Point point)
         {

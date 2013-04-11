@@ -47,19 +47,17 @@ namespace wally
         private float bucketsHeight = 675;
 
         //Line that is drawn by right hand of the user
-        private Polyline myPolyline;
-        private Polyline currentLine;
+       // private Polyline myPolyline;
+       // private Polyline currentLine;
 
 
         private ArrayList players;
 
         private bool PaintingTimeOver = false;
 
-        private String lastPngImage;
+        //private int currentStroke = 2; //1 = thick 2 = thin
 
-        private int currentStroke = 2; //1 = thick 2 = thin
-
-        private ArrayList myPonyLines;
+        //private ArrayList myPonyLines;
 
         //Thickness of drawn joint lines and of body center elipse
         private const double JointThickness = 3;
@@ -92,8 +90,6 @@ namespace wally
 
         // Using Two Kinects
         private ArrayList processes;
-
-        private Skeleton skel;
 
 
         // INTERNAL DATA STRUCTURE
@@ -131,7 +127,7 @@ namespace wally
             mmf_result = new byte[MemoryMappedFileCapacitySkeleton];
             mmf_mask = new byte[MemoryMappedFileCapacityMask];
 
-            this.myPonyLines = new ArrayList();
+            //this.myPonyLines = new ArrayList();
             this.players = new ArrayList();
 
             this.DeviceCount = KinectSensor.KinectSensors.Count;
@@ -180,13 +176,13 @@ namespace wally
             this.windowSetUp();
 
             //Init Polyline
-            myPolyline = new Polyline();
-            myPolyline.Stroke = System.Windows.Media.Brushes.White;
-            myPolyline.StrokeThickness = 2;
-            myPolyline.FillRule = FillRule.EvenOdd;
-            myPonyLines.Add(myPolyline);
-            currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-            myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
+            ////myPolyline = new Polyline();
+            ////myPolyline.Stroke = System.Windows.Media.Brushes.White;
+            ////myPolyline.StrokeThickness = 2;
+            ////myPolyline.FillRule = FillRule.EvenOdd;
+            ////myPonyLines.Add(myPolyline);
+            ////currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
+            ////myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
 
 
             this.shadowBitmap = new WriteableBitmap(320, 240, 96.0, 96.0, PixelFormats.Bgra32, null);
@@ -259,35 +255,40 @@ namespace wally
         private void SaveLinesAsImage()
         {
 
-            RenderTargetBitmap targetBitmap = new RenderTargetBitmap((int)myCanvas.ActualWidth,
-                             (int)myCanvas.ActualHeight,
-                             96d, 96d,
-                             PixelFormats.Default);
-
-            targetBitmap.Render(myCanvas);
-
-            // create a png bitmap encoder which knows how to save a .png file
-            BitmapEncoder encoder = new PngBitmapEncoder();
-
-            // create frame from the writable bitmap and add to encoder
-            encoder.Frames.Add(BitmapFrame.Create(targetBitmap));
-
-            //only filename construction
-            string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
-            string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures); //Eigene Dateien->Bilder
-            string path = System.IO.Path.Combine(myPhotos, "KinectSnapshot-" + time + ".png");
-            lastPngImage = path;
-
-            // write the new file to disk
-            try
+            foreach (Player player in players)
             {
-                using (FileStream fs = new FileStream(path, FileMode.Create))
+                RenderTargetBitmap targetBitmap = new RenderTargetBitmap((int)player.getMyCanvas().ActualWidth,
+                                 (int)player.getMyCanvas().ActualHeight,
+                                 96d, 96d,
+                                 PixelFormats.Default);
+
+                targetBitmap.Render(player.getMyCanvas());
+
+                // create a png bitmap encoder which knows how to save a .png file
+                BitmapEncoder encoder = new PngBitmapEncoder();
+
+                // create frame from the writable bitmap and add to encoder
+                encoder.Frames.Add(BitmapFrame.Create(targetBitmap));
+
+                //only filename construction
+                string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
+                string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures); //Eigene Dateien->Bilder
+                string path = System.IO.Path.Combine
+                    (myPhotos, "KinectSnapshot-" + time + "player" + player.GetHashCode() + ".png");
+                player.setLastPngImg(path);
+
+                // write the new file to disk
+                try
                 {
-                    encoder.Save(fs);
+                    using (FileStream fs = new FileStream(path, FileMode.Create))
+                    {
+                        encoder.Save(fs);
+                    }
                 }
-            }
-            catch (IOException)
-            {
+                catch (IOException)
+                {
+                }
+
             }
         }
 
@@ -295,65 +296,71 @@ namespace wally
         /// <summary>
         /// Manage the selection of different colors
         /// </summary>
-        private void ColorSelection(Skeleton skel)
+        private void ColorSelection()
         {
+            foreach (Player player in players)
+            {
+                Skeleton skel = player.getSkeleton();
+                double leftHandY = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).Y;
+                double leftHandX = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).X;
+                Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position));
+                double xCoord1 = playerPosition.X - 100;
+                double xCoord2 = playerPosition.X - 100 - bucketsWidth;
+                double yCoordSteps = bucketsHeight / 6; //amount of colors used, currently 6 
+                double yCoordStart = 0; 
 
-            double leftHandY = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).Y;
-            double leftHandX = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).X;
-            Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position));
-            double xCoord1 = playerPosition.X - 100;
-            double xCoord2 = playerPosition.X - 100 - bucketsWidth;
-            double yCoordSteps = bucketsHeight / 6; //amount of colors used, currently 6 
-            double yCoordStart = 0; //Wird z.T. noch negativ (Skeleton Point to Screen Fehler bei Hand!!)
-
-            if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps && leftHandX < xCoord1 && leftHandX > xCoord2
-                && currentLine.Stroke != System.Windows.Media.Brushes.White)
-            {
-                DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
-            }
-            if (leftHandY >= yCoordStart + yCoordSteps && leftHandY < yCoordStart + 2 * yCoordSteps
-                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                currentLine.Stroke != System.Windows.Media.Brushes.Blue)
-            {
-                DrawLine(System.Windows.Media.Brushes.Blue, currentLine.StrokeThickness);
-            }
-            if (leftHandY >= yCoordStart + 2 * yCoordSteps && leftHandY < yCoordStart + 3 * yCoordSteps
-                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                currentLine.Stroke != System.Windows.Media.Brushes.Yellow)
-            {
-                DrawLine(System.Windows.Media.Brushes.Yellow, currentLine.StrokeThickness);
-            }
-            if (leftHandY >= yCoordStart + 3 * yCoordSteps && leftHandY < yCoordStart + 4 * yCoordSteps
-                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                currentLine.Stroke != System.Windows.Media.Brushes.Green)
-            {
-                DrawLine(System.Windows.Media.Brushes.Green, currentLine.StrokeThickness);
-            }
-            if (leftHandY >= yCoordStart + 4 * yCoordSteps && leftHandY < yCoordStart + 5 * yCoordSteps
-                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                currentLine.Stroke != System.Windows.Media.Brushes.Red)
-            {
-                DrawLine(System.Windows.Media.Brushes.Red, currentLine.StrokeThickness);
-            }
-            if (leftHandY >= yCoordStart + 5 * yCoordSteps && leftHandY < yCoordStart + 6 * yCoordSteps
-                && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                currentLine.Stroke != System.Windows.Media.Brushes.Black)
-            {
-                DrawLine(System.Windows.Media.Brushes.Black, currentLine.StrokeThickness);
+                if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps 
+                    && leftHandX < xCoord1 && leftHandX > xCoord2
+                    && player.getCurrentColor() != System.Windows.Media.Brushes.White)
+                {
+                    DrawLine(System.Windows.Media.Brushes.White, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + yCoordSteps && leftHandY < yCoordStart + 2 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Blue)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Blue, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + 2 * yCoordSteps && leftHandY < yCoordStart + 3 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Yellow)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Yellow, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + 3 * yCoordSteps && leftHandY < yCoordStart + 4 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Green)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Green, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + 4 * yCoordSteps && leftHandY < yCoordStart + 5 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Red)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Red, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + 5 * yCoordSteps && leftHandY < yCoordStart + 6 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Black)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Black, player.getCurrentStroke(), player);
+                }
             }
         }
 
         private void Painting()
         {
-
-
-            foreach (Skeleton skel in this.skelData)
+            foreach (Player player in players)
             {
+                Skeleton skel = player.getSkeleton();
+                Polyline myPolyline = new Polyline();
+                myPolyline.Stroke = System.Windows.Media.Brushes.White;
+                myPolyline.StrokeThickness = 5;
+                player.addLine(myPolyline);
+                player.getMyCanvas().Children.Add(player.getCurrentLine());
 
                 if (skel.Position.Z > 0.7 && skel.Position.Z <= 2.0)
                 {
-
-                    // AnimateColors(this.SkeletonPointToScreen(skel.Position));
 
                     System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
 
@@ -361,49 +368,41 @@ namespace wally
 
                     //As long as the hand is nearer to the screen than the user's body -> painting 
                     //As soon as the hand is further away from the screen than the user's body  -> not painting
-                    if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.1 && currentLine.Points.Count > 1)
+                    if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.1 && player.getCurrentLine().Points.Count > 1)
                     {
-                        DrawLine(currentLine.Stroke, 5);
+                        DrawLine(player.getCurrentColor(), 5, player);
                     }
 
                     //When the hand is near to the screen (if-case) the line gets thicker
 
                     if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.8
                         && skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.3
-                        && currentLine.Points.Count > 1)
+                        && player.getCurrentLine().Points.Count > 1)
                     {
-                        if (currentStroke == 2)
+                        if (player.getCurrentStroke() == 5)
                         {
-                            DrawLine(currentLine.Stroke, 20);
-                            currentStroke = 1;
+                            DrawLine(player.getCurrentColor(), 20, player);
                         }
-                        else
-                            currentLine.StrokeThickness = 20;
-
                     }
 
                     //When the hand is further away from the screen (else if - case) the line gets thinner
                     else if (skel.Joints[JointType.HandRight].Position.Z > skel.Position.Z - 0.3
-                        && currentLine.Points.Count > 1)
+                        && player.getCurrentLine().Points.Count > 1)
                     {
-                        if (currentStroke == 1)
+                        if (player.getCurrentStroke() == 20)
                         {
-                            DrawLine(currentLine.Stroke, 5);
-                            currentStroke = 2;
+                            DrawLine(player.getCurrentColor(), 5, player);
                         }
-                        else
-                            currentLine.StrokeThickness = 5;
-
                     }
 
 
                     if (skel.Joints[JointType.HandRight].Position.Z < skel.Position.Z - 0.1)
                     {
-                        currentLine.Points.Add(Point1);
+                        player.addPointToCurrentLine(Point1);
                     }
 
                     // Changing of stroke color with the left hand
-                    ColorSelection(skel);
+                    //ColorSelection(skel);
                 }
             }
         }
@@ -502,52 +501,45 @@ namespace wally
         /// </summary>
         /// <param name="lineColor">Color for the new line</param>
         /// <param name="lineThickness">Thickness of the new line</param>
-        private void DrawLine(System.Windows.Media.Brush lineColor, double lineThickness)
+        private void DrawLine(System.Windows.Media.Brush lineColor, double lineThickness, Player player)
         {
 
-            //System.Console.WriteLine(myPonyLines.Count);
-            if (PaintingTimeOver)
+           if (PaintingTimeOver)
             {
                 SaveLinesAsImage();
                 // Create new image and set source path
                 Image image = new Image();
-                image.Source = new BitmapImage(new Uri(lastPngImage));
+                image.Source = new BitmapImage(new Uri(player.getLastPngImg()));
 
                 // Place image 
                 image.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
                 image.VerticalAlignment = System.Windows.VerticalAlignment.Top;
                 image.Margin = new Thickness(0, 0, 0, 0); // origin
-                myCanvas.Width = this.ActualWidth;
-                myCanvas.Height = this.ActualHeight;
-                myCanvas.Children.Add(image); // MainGrid is defined in xaml
+                player.getMyCanvas().Width = this.ActualWidth;
+                player.getMyCanvas().Height = this.ActualHeight;
+                player.getMyCanvas().Children.Add(image); 
 
-                for (int i = 0; i < myPonyLines.Count - 1; i++)
+                for (int i = 0; i < player.getPonyCount() - 1; i++)
                 {
-                    myCanvas.Children.Remove((Polyline)myPonyLines[i]);
+                    ArrayList ponyLines = player.getPonyLines();
+                    player.getMyCanvas().Children.Remove((Polyline)ponyLines[i]);
                 }
-                myPonyLines.Clear();
+                player.getPonyLines().Clear();
 
-                myPolyline = new Polyline();
-                myPolyline.Stroke = System.Windows.Media.Brushes.White;
-                myPolyline.StrokeThickness = 2;
-                myPolyline.FillRule = FillRule.EvenOdd;
-                myPonyLines.Add(myPolyline);
-                currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-                myGrid.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
-            }
-
-            else
-            {
-
-                currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-                //Console.WriteLine("Current Line Points:" + currentLine.Points.Count);
-                //Console.WriteLine("Number of Lines:" + myPonyLines.Count);
                 Polyline newLine = new Polyline();
                 newLine.Stroke = lineColor;
                 newLine.StrokeThickness = lineThickness;
-                myPonyLines.Add(newLine);
-                myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
-                currentLine = newLine;
+                player.addLine(newLine);
+                player.getMyCanvas().Children.Add(player.getCurrentLine());
+            }
+
+           else
+            {
+                Polyline newLine = new Polyline();
+                newLine.Stroke = lineColor;
+                newLine.StrokeThickness = lineThickness;
+                player.addLine(newLine);
+                player.getMyCanvas().Children.Add(player.getCurrentLine());
             }
         }
 
@@ -718,8 +710,8 @@ namespace wally
                                             if (skelNew.TrackingId == ((Player)players[k]).getSkeleton().TrackingId)
                                             {
                                                 //old player recognized, create nothing
-                                                System.Console.WriteLine("Detected old Player with KinectProcessID:" + i);
                                                 ((Player)players[k]).setSkeleton(skelNew);
+
                                                 playerRecognized = true;
                                             }
                                         }
@@ -728,7 +720,7 @@ namespace wally
                                             //new player recognized with old existing players
                                             Player newPlayer = new Player(i, skelNew, new Polyline());
                                             this.players.Add(newPlayer);
-                                            System.Console.WriteLine("New Player created with KinectProcessID:" + i);
+                                           // System.Console.WriteLine("New Player created with KinectProcessID:" + i);
                                         }
                                     }
                                     else
@@ -736,10 +728,10 @@ namespace wally
                                         //new Player recognized with no existing players
                                         Player newPlayer = new Player(i, skelNew, new Polyline());
                                         this.players.Add(newPlayer);
-                                        System.Console.WriteLine("New Player created with no existing KinectProcessID:" + i);
+                                        //System.Console.WriteLine("New Player created with no existing KinectProcessID:" + i);
                                     }
 
-                                    System.Console.WriteLine("Current Players Count:" + this.players.Count);
+                                   // System.Console.WriteLine("Current Players Count:" + this.players.Count);
                                 }
                                 catch (Exception e)
                                 {
