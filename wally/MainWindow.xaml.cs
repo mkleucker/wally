@@ -421,7 +421,7 @@ namespace wally
 
                         System.Windows.Point Point1 = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
 
-                        Point1 = this.stretchPointToScreen(Point1);
+                        Point1 = this.stretchPointToScreen(Point1, player.getPlayersKinectId());
 
                         //As long as the hand is nearer to the screen than the user's body -> painting 
                         //As soon as the hand is further away from the screen than the user's body  -> not painting
@@ -564,7 +564,7 @@ namespace wally
 
         private Point stretchPointToScreen(Point point)
         {
-            return this.stretchPointToScreen(point, 1);
+            return this.stretchPointToScreen(point, 0);
         }
 
         private Point stretchPointToScreen(Point point, int kinect)
