@@ -189,7 +189,7 @@ namespace wally
 
             this.canImg = new BitmapImage(new Uri("Resources/Can.png", UriKind.Relative));
             this.paintingColorsImg = new BitmapImage(new Uri("Resources/paintingColorsImg.png", UriKind.Relative));
-           
+
         }
 
         /// <summary>
@@ -201,13 +201,15 @@ namespace wally
             double screenWidth = System.Windows.SystemParameters.VirtualScreenWidth;
             double screenHeight = System.Windows.SystemParameters.VirtualScreenHeight;
 
-            this.Width = screenWidth;
-            this.Height = screenHeight;
+            this.Width = 3412;
+            this.Height = 480;
+
 
             this.Background = new RadialGradientBrush(Color.FromRgb(100, 100, 100), Color.FromRgb(50, 50, 50));
 
-            this.myGrid.Width = screenWidth;
-            this.myGrid.Height = screenHeight;
+            this.WindowStyle = WindowStyle.None;
+            this.WindowState = WindowState.Maximized;
+            this.Cursor = System.Windows.Input.Cursors.None;
         }
 
         private void PaintingTimer()
@@ -305,12 +307,12 @@ namespace wally
             System.Console.WriteLine("yCoordStart" + yCoordStart);
             System.Console.WriteLine("yCoordSteps" + yCoordSteps);
 
-            if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps && leftHandX < xCoord1 && leftHandX > xCoord2 
+            if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps && leftHandX < xCoord1 && leftHandX > xCoord2
                 && currentLine.Stroke != System.Windows.Media.Brushes.White)
             {
-                 DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
+                DrawLine(System.Windows.Media.Brushes.White, currentLine.StrokeThickness);
             }
-            if (leftHandY >= yCoordStart + yCoordSteps && leftHandY < yCoordStart + 2 * yCoordSteps 
+            if (leftHandY >= yCoordStart + yCoordSteps && leftHandY < yCoordStart + 2 * yCoordSteps
                 && leftHandX < xCoord1 && leftHandX > xCoord2 &&
                 currentLine.Stroke != System.Windows.Media.Brushes.Blue)
             {
@@ -411,7 +413,7 @@ namespace wally
         {
             using (DrawingContext dc = this.drawingGroup.Open())
             {
-                dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+                dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.ActualWidth, this.ActualHeight));
 
                 foreach (Skeleton skel in this.skelData)
                 {
@@ -426,6 +428,9 @@ namespace wally
                     Point playerPosition = this.SkeletonPointToScreen(skel.Position);
 
                     p = this.stretchPointToScreen(p);
+
+                    Console.WriteLine(p.X + " -- " + p.Y);
+
                     dc.DrawImage(
                             this.canImg,
                             new Rect(p.X - 50, p.Y, 50, 50)
@@ -437,7 +442,7 @@ namespace wally
 
                 }
 
-                this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.Width, this.Height));
+                this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.ActualWidth, this.ActualHeight));
             }
         }
 
@@ -518,6 +523,8 @@ namespace wally
                 image.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
                 image.VerticalAlignment = System.Windows.VerticalAlignment.Top;
                 image.Margin = new Thickness(0, 0, 0, 0); // origin
+                myCanvas.Width = this.ActualWidth;
+                myCanvas.Height = this.ActualHeight;
                 myCanvas.Children.Add(image); // MainGrid is defined in xaml
 
                 for (int i = 0; i < myPonyLines.Count - 1; i++)
@@ -560,15 +567,18 @@ namespace wally
         {
             // Convert point to depth space.  
             // We are not using depth directly, but we do want the points in our 640x480 output resolution.
-            DepthImagePoint depthPoint = ((KinectSensor)this.sensors[0]).CoordinateMapper.MapSkeletonPointToDepthPoint(skelpoint, DepthImageFormat.Resolution640x480Fps30);
+            ColorImagePoint depthPoint = ((KinectSensor)this.sensors[0]).CoordinateMapper.MapSkeletonPointToColorPoint(skelpoint, ColorImageFormat.RgbResolution640x480Fps30);
             return new Point(depthPoint.X, depthPoint.Y);
         }
 
         private Point stretchPointToScreen(Point point)
         {
+
+            double scaleFactorX = (this.ActualWidth * 4) / 640;
+            Console.WriteLine(scaleFactorX);
             Point screenPoint = new Point();
-            screenPoint.X = point.X * this.ActualWidth / 640.0;
-            screenPoint.Y = point.Y * this.ActualHeight / 480.0;
+            screenPoint.X = point.X * scaleFactorX;
+            screenPoint.Y = point.Y * this.ActualHeight / this.Height;
             return screenPoint;
 
         }
@@ -876,7 +886,7 @@ namespace wally
                 Environment.Exit(0);
             }
         }
- 
+
 
     }
 }
