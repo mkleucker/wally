@@ -14,6 +14,7 @@ namespace wally
 
     public class Player
     {
+        private bool isActive;
         private ArrayList myPonylines;
         private Polyline currentLine;
         private Skeleton mySkel;
@@ -24,16 +25,19 @@ namespace wally
         private Canvas myCanvas;
         private String lastPngImage;
 
-        public Player(int ID, Skeleton skel, Polyline line, Grid grid)
-        {
+        public Player() {
+            this.isActive = false;
+        }
+
+        public void activatePlayer (int ID, Skeleton skel, Polyline line, Canvas canvas) {
+            this.isActive = true;
             this.currentLine = line;
             this.currentColor = System.Windows.Media.Brushes.White;
             this.currentStroke = 5;
             this.mySkel = skel;
             this.kinectProcessID = ID;
             this.myPonylines = new ArrayList();
-            this.myCanvas = new Canvas();
-            grid.Children.Add(this.myCanvas);
+            this.myCanvas = canvas;
         }
 
         public void addLine(Polyline line)
@@ -108,6 +112,12 @@ namespace wally
         public void addPointToCurrentLine(Point point)
         {
             this.currentLine.Points.Add(point);
+        }
+        public bool getState() {
+            return this.isActive;
+        }
+        public void setState(bool state) {
+            this.isActive = state;
         }
 
     }
