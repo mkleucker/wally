@@ -345,7 +345,8 @@ namespace wally
                     Skeleton skel = player.getSkeleton();
                     double leftHandY = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).Y;
                     double leftHandX = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).X;
-                    Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position));
+                    Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position),
+                        player.getPlayersKinectId());
                     double xCoord1 = playerPosition.X - 100 * 3;
                     double xCoord2 = playerPosition.X - 100 * 3 - bucketsWidth;
                     double yCoordSteps = bucketsHeight / 6; //amount of colors used, currently 6 
@@ -571,9 +572,10 @@ namespace wally
             Point screenPoint = new Point();
             int multiplicator = 4 / this.processes.Count;
             screenPoint.X = point.X * (this.Width / 640) * multiplicator;
-            if (kinect > 1)
+            //Console.WriteLine(kinect + " : " + screenPoint.X);
+            if (kinect > 0)
             {
-                screenPoint.X += (TargetWidth / multiplicator) * kinect;
+                screenPoint.X += TargetWidth / (kinect + 1);
             }
             screenPoint.Y = point.Y * (this.Height / 480);
             return screenPoint;
@@ -733,6 +735,7 @@ namespace wally
                                         }
 
 
+
                                     }
                                 }
                                 catch (Exception e)
@@ -833,10 +836,10 @@ namespace wally
         private void DrawTimer()
         {
 
-            this.DrawSkeleton();
+
             this.DrawMask();
             this.Painting();
-
+            this.DrawSkeleton();
         }
 
         private void DrawMask()
@@ -845,37 +848,59 @@ namespace wally
 
 
             double dpi = 96;
-            int width = 320;
+            int origWidth = 320;
+            int width = origWidth * this.maskData.Count;
             int height = 240;
             int stride = (width * PixelFormats.Bgra32.BitsPerPixel) / 8;
-            byte[] pixelData = new byte[height * stride * this.maskData.Count];
+            byte[] pixelData = new byte[height * stride];
 
             // Prepare MaskArray
 
-            for (int mask = 0; mask < this.maskData.Count; mask++)
+
+            byte[] incomingMask = (byte[])this.maskData[0];
+            if (this.maskData.Count > 1)
             {
-                int factor = (mask > 0) ? mask * stride : 0;
+                incomingMask = new byte[incomingMask.Length * this.maskData.Count];
 
-                byte[] incomingMask = (byte[])this.maskData[mask];
-
-                int j = 0;
-                for (int i = 0; i < height * stride; i += (PixelFormats.Bgra32.BitsPerPixel / 8))
+                int line = 0;
+                for (int i = 0; i < incomingMask.Length; i++)
                 {
-                    pixelData[factor + i] = (byte)255;  // BLUE
-                    pixelData[factor + i + 1] = (byte)255; // GREEN
-                    pixelData[factor + i + 2] = (byte)255; // RED
-                    if (incomingMask[j] != (byte)0)
+
+                    int currentLine = i % width;
+                    int position = line * origWidth + (currentLine % origWidth);
+                    if (currentLine >= origWidth)
                     {
-                        pixelData[factor + i + 3] = (byte)100; // ALPHA
+                        incomingMask[i] = ((byte[])this.maskData[1])[position];
                     }
                     else
                     {
-                        pixelData[factor + i + 3] = (byte)0;
+                        incomingMask[i] = ((byte[])this.maskData[0])[position];
                     }
-
-                    j++;
+                    if (i > 0 && i % width == 0)
+                    {
+                        line++;
+                    }
                 }
             }
+
+            int j = 0;
+            for (int i = 0; i < height * stride; i += (PixelFormats.Bgra32.BitsPerPixel / 8))
+            {
+                pixelData[i] = (byte)255;  // BLUE
+                pixelData[i + 1] = (byte)255; // GREEN
+                pixelData[i + 2] = (byte)255; // RED
+                if (incomingMask[j] != (byte)0)
+                {
+                    pixelData[i + 3] = (byte)100; // ALPHA
+                }
+                else
+                {
+                    pixelData[i + 3] = (byte)0;
+                }
+
+                j++;
+            }
+
 
 
             this.MaskedColor.Source = BitmapSource.Create(
