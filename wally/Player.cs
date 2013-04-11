@@ -24,7 +24,7 @@ namespace wally
         private Canvas myCanvas;
         private String lastPngImage;
 
-        public Player(int ID, Skeleton skel, Polyline line)
+        public Player(int ID, Skeleton skel, Polyline line, Grid grid)
         {
             this.currentLine = line;
             this.currentColor = System.Windows.Media.Brushes.White;
@@ -33,6 +33,7 @@ namespace wally
             this.kinectProcessID = ID;
             this.myPonylines = new ArrayList();
             this.myCanvas = new Canvas();
+            grid.Children.Add(this.myCanvas);
         }
 
         public void addLine(Polyline line)

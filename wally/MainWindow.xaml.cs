@@ -431,7 +431,6 @@ namespace wally
                             new Rect(playerPosition.X - 500, 0, bucketsWidth, bucketsHeight)
                         );
 
-
                 }
 
 
@@ -718,7 +717,7 @@ namespace wally
                                         if (!playerRecognized)
                                         {
                                             //new player recognized with old existing players
-                                            Player newPlayer = new Player(i, skelNew, new Polyline());
+                                            Player newPlayer = new Player(i, skelNew, new Polyline(), myGrid);
                                             this.players.Add(newPlayer);
                                            // System.Console.WriteLine("New Player created with KinectProcessID:" + i);
                                         }
@@ -726,7 +725,7 @@ namespace wally
                                     else
                                     {
                                         //new Player recognized with no existing players
-                                        Player newPlayer = new Player(i, skelNew, new Polyline());
+                                        Player newPlayer = new Player(i, skelNew, new Polyline(), myGrid);
                                         this.players.Add(newPlayer);
                                         //System.Console.WriteLine("New Player created with no existing KinectProcessID:" + i);
                                     }
