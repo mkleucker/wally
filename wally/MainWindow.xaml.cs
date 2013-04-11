@@ -50,6 +50,9 @@ namespace wally
         private Polyline myPolyline;
         private Polyline currentLine;
 
+
+        private ArrayList players;
+
         private bool PaintingTimeOver = false;
 
         private String lastPngImage;
@@ -129,6 +132,7 @@ namespace wally
             mmf_mask = new byte[MemoryMappedFileCapacityMask];
 
             this.myPonyLines = new ArrayList();
+            this.players = new ArrayList();
 
             this.DeviceCount = KinectSensor.KinectSensors.Count;
 
@@ -138,7 +142,7 @@ namespace wally
 
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
-            MyImage.Source = this.imageSource; //display the drawing to use our image control
+            //MyImage.Source = this.imageSource; //display the drawing to use our image control
 
             // Look through all sensors and start the first connected one.
             this.sensors = new ArrayList();
@@ -438,7 +442,7 @@ namespace wally
 
                 }
 
-                //this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.ActualWidth, this.ActualHeight));
+
             }
         }
 
@@ -675,7 +679,7 @@ namespace wally
                 if (this.skelAccess != null)
                 {
 
-                    for (int i = 0; i < this.skelAccess.GetLength(0); i++)
+                    for (int i = 0; i < this.skelAccess.GetLength(0); i++) //i = process j= channel
                     {
                         for (int j = 0; j < 2; j++)
                         {
@@ -692,6 +696,7 @@ namespace wally
 
                             skeletonMutex.ReleaseMutex();
 
+
                             if (!empty)
                             {
                                 try
@@ -701,6 +706,37 @@ namespace wally
                                     Skeleton skelNew = (Skeleton)bf.Deserialize(ms);
 
                                     this.skelData.Add(skelNew);
+                                    bool playerRecognized = false;
+
+                                    //create players 
+                                    if (players.Count > 0)
+                                    {
+                                        for (int k = 0; k < players.Count; k++)
+                                        {
+                                            if (skelNew.TrackingId == ((Player)players[k]).getSkeleton().TrackingId)
+                                            {
+                                                //old player recognized, create nothing
+                                                System.Console.WriteLine("Detected old Player with KinectProcessID:" + i);
+                                                playerRecognized = true;
+                                            }
+                                        }
+                                        if (!playerRecognized)
+                                        {
+                                            //new player recognized with old existing players
+                                            Player newPlayer = new Player(i, skelNew, new Polyline());
+                                            this.players.Add(newPlayer);
+                                            System.Console.WriteLine("New Player created with KinectProcessID:" + i);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        //new Player recognized with no existing players
+                                        Player newPlayer = new Player(i, skelNew, new Polyline());
+                                        this.players.Add(newPlayer);
+                                        System.Console.WriteLine("New Player created with no existing KinectProcessID:" + i);
+                                    }
+
+                                    System.Console.WriteLine("Current Players Count:" + this.players.Count);
                                 }
                                 catch (Exception e)
                                 {
