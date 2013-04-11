@@ -39,8 +39,8 @@ namespace wally
         private static int Runs = 0;
 
         //Width and Height of our drawing output
-        private const float RenderWidth = 640.0f;
-        private const float RenderHeight = 480.0f;
+        private const float TargetWidth = 3412.0f;
+        private const float TargetHeight = 480.0f;
 
         //Width and Height of Colorpalette (Change here if necessary!!)
         private float bucketsWidth = 150;
@@ -408,7 +408,8 @@ namespace wally
         {
             using (DrawingContext dc = this.drawingGroup.Open())
             {
-                dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.ActualWidth, this.ActualHeight));
+                Console.WriteLine(this.Width + " " + this.Height);
+                dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.Width, this.Height));
 
                 foreach (Skeleton skel in this.skelData)
                 {
@@ -432,12 +433,12 @@ namespace wally
                         );
                     dc.DrawImage(
                             this.paintingColorsImg,
-                            new Rect(playerPosition.X - 200, 0, bucketsWidth, bucketsHeight)
+                            new Rect(playerPosition.X - 500, 0, bucketsWidth, bucketsHeight)
                         );
 
                 }
 
-                this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.ActualWidth, this.ActualHeight));
+                //this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, this.ActualWidth, this.ActualHeight));
             }
         }
 
@@ -568,14 +569,10 @@ namespace wally
 
         private Point stretchPointToScreen(Point point)
         {
-
-            double scaleFactorX = (this.ActualWidth * 4) / 640;
-            Console.WriteLine(scaleFactorX);
             Point screenPoint = new Point();
-            screenPoint.X = point.X * scaleFactorX;
-            screenPoint.Y = point.Y * this.ActualHeight / this.Height;
+            screenPoint.X = point.X * (this.Width / 640) * 4;
+            screenPoint.Y = point.Y * (this.Height / 480);
             return screenPoint;
-
         }
 
 
@@ -833,9 +830,9 @@ namespace wally
                 int j = 0;
                 for (int i = 0; i < height * stride; i += (PixelFormats.Bgra32.BitsPerPixel / 8))
                 {
-                    pixelData[factor + i] = (byte)100;  // BLUE
-                    pixelData[factor + i + 1] = (byte)100; // GREEN
-                    pixelData[factor + i + 2] = (byte)100; // RED
+                    pixelData[factor + i] = (byte)255;  // BLUE
+                    pixelData[factor + i + 1] = (byte)255; // GREEN
+                    pixelData[factor + i + 2] = (byte)255; // RED
                     if (incomingMask[j] != (byte)0)
                     {
                         pixelData[factor + i + 3] = (byte)100; // ALPHA
