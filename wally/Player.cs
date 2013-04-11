@@ -75,6 +75,11 @@ namespace wally
         {
             return this.mySkel;
         }
+        public Skeleton setSkeleton(Skeleton skel)
+        {
+            this.mySkel = skel;
+            return this.mySkel;
+        }
         public int getPlayersKinectId()
         {
             return this.kinectProcessID;
@@ -89,7 +94,7 @@ namespace wally
         }
         public void addPointToCurrentLine(Point point)
         {
-            this.currentLine.Points.Add(point); 
+            this.currentLine.Points.Add(point);
         }
 
     }

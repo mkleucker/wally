@@ -142,7 +142,7 @@ namespace wally
 
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
-            //MyImage.Source = this.imageSource; //display the drawing to use our image control
+            MyImage.Source = this.imageSource; //display the drawing to use our image control
 
             // Look through all sensors and start the first connected one.
             this.sensors = new ArrayList();
@@ -412,24 +412,16 @@ namespace wally
         {
             using (DrawingContext dc = this.drawingGroup.Open())
             {
-                Console.WriteLine(this.Width + " " + this.Height);
                 dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.Width, this.Height));
 
-                foreach (Skeleton skel in this.skelData)
+                foreach (Player player in this.players)
                 {
-                    //this.DrawBonesAndJoints(skel, dc);
-                    //dc.DrawEllipse(
-                    //    this.centerPointBrush,
-                    //    null,
-                    //    this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position),
-                    //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
-                    //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
+                    Skeleton skel = player.getSkeleton();
+
                     Point p = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
                     Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position));
 
-                    p = this.stretchPointToScreen(p);
-
-                    Console.WriteLine(p.X + " -- " + p.Y);
+                    p = this.stretchPointToScreen(p, player.getPlayersKinectId());
 
                     dc.DrawImage(
                             this.canImg,
@@ -440,7 +432,9 @@ namespace wally
                             new Rect(playerPosition.X - 500, 0, bucketsWidth, bucketsHeight)
                         );
 
+
                 }
+
 
 
             }
@@ -573,12 +567,20 @@ namespace wally
 
         private Point stretchPointToScreen(Point point)
         {
+            return this.stretchPointToScreen(point, 1);
+        }
+
+        private Point stretchPointToScreen(Point point, int kinect)
+        {
             Point screenPoint = new Point();
             screenPoint.X = point.X * (this.Width / 640) * 4;
+            if (this.sensors.Count == 2)
+            {
+                screenPoint.X = screenPoint.X / (kinect + 1);
+            }
             screenPoint.Y = point.Y * (this.Height / 480);
             return screenPoint;
         }
-
 
 
         /// <summary>
@@ -717,6 +719,7 @@ namespace wally
                                             {
                                                 //old player recognized, create nothing
                                                 System.Console.WriteLine("Detected old Player with KinectProcessID:" + i);
+                                                ((Player)players[k]).setSkeleton(skelNew);
                                                 playerRecognized = true;
                                             }
                                         }
