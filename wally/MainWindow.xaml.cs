@@ -292,18 +292,13 @@ namespace wally
         private void ColorSelection(Skeleton skel)
         {
 
-            double leftHandY = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).Y;
-            double leftHandX = SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position).X;
-            Point playerPosition = this.SkeletonPointToScreen(skel.Position);
+            double leftHandY = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).Y;
+            double leftHandX = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).X;
+            Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position));
             double xCoord1 = playerPosition.X - 100;
             double xCoord2 = playerPosition.X - 100 - bucketsWidth;
             double yCoordSteps = bucketsHeight / 6; //amount of colors used, currently 6 
-            double yCoordStart = 5; //Wird z.T. noch negativ (Skeleton Point to Screen Fehler bei Hand!!)
-
-            System.Console.WriteLine("playerPosition" + playerPosition);
-            System.Console.WriteLine("playerPosition.Y" + playerPosition.Y);
-            System.Console.WriteLine("yCoordStart" + yCoordStart);
-            System.Console.WriteLine("yCoordSteps" + yCoordSteps);
+            double yCoordStart = 0; //Wird z.T. noch negativ (Skeleton Point to Screen Fehler bei Hand!!)
 
             if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps && leftHandX < xCoord1 && leftHandX > xCoord2 
                 && currentLine.Stroke != System.Windows.Media.Brushes.White)
@@ -423,7 +418,7 @@ namespace wally
                     //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z,
                     //    BodyCenterThickness * skel.Joints[JointType.HandRight].Position.Z);
                     Point p = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
-                    Point playerPosition = this.SkeletonPointToScreen(skel.Position);
+                    Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position));
 
                     p = this.stretchPointToScreen(p);
                     dc.DrawImage(
@@ -432,7 +427,7 @@ namespace wally
                         );
                     dc.DrawImage(
                             this.paintingColorsImg,
-                            new Rect(playerPosition.X - 100, 5, bucketsWidth, bucketsHeight)
+                            new Rect(playerPosition.X - 200, 0, bucketsWidth, bucketsHeight)
                         );
 
                 }
