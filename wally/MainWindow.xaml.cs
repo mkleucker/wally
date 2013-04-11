@@ -335,59 +335,59 @@ namespace wally
         /// <summary>
         /// Manage the selection of different colors
         /// </summary>
-        private void ColorSelection()
+        private void ColorSelection(Player player)
         {
-            foreach (Player player in players)
+
+
+            if (player.getState())
             {
+                Skeleton skel = player.getSkeleton();
+                double leftHandY = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position),
+                    player.getPlayersKinectId()).Y;
+                double leftHandX = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position),
+                    player.getPlayersKinectId()).X;
+                Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position),
+                    player.getPlayersKinectId());
+                double xCoord1 = playerPosition.X - 700;
+                double xCoord2 = playerPosition.X - 700 - bucketsWidth;
+                double yCoordSteps = bucketsHeight / 6; //amount of colors used, currently 6 
+                double yCoordStart = 0;
 
-                if (player.getState())
+                if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2
+                    && player.getCurrentColor() != System.Windows.Media.Brushes.White)
                 {
-                    Skeleton skel = player.getSkeleton();
-                    double leftHandY = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).Y;
-                    double leftHandX = stretchPointToScreen(SkeletonPointToScreen(skel.Joints[JointType.HandLeft].Position)).X;
-                    Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position),
-                        player.getPlayersKinectId());
-                    double xCoord1 = playerPosition.X - 100 * 3;
-                    double xCoord2 = playerPosition.X - 100 * 3 - bucketsWidth;
-                    double yCoordSteps = bucketsHeight / 6; //amount of colors used, currently 6 
-                    double yCoordStart = 0;
-
-                    if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps
-                        && leftHandX < xCoord1 && leftHandX > xCoord2
-                        && player.getCurrentColor() != System.Windows.Media.Brushes.White)
-                    {
-                        DrawLine(System.Windows.Media.Brushes.White, player.getCurrentStroke(), player);
-                    }
-                    if (leftHandY >= yCoordStart + yCoordSteps && leftHandY < yCoordStart + 2 * yCoordSteps
-                        && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                        player.getCurrentColor() != System.Windows.Media.Brushes.Blue)
-                    {
-                        DrawLine(System.Windows.Media.Brushes.Blue, player.getCurrentStroke(), player);
-                    }
-                    if (leftHandY >= yCoordStart + 2 * yCoordSteps && leftHandY < yCoordStart + 3 * yCoordSteps
-                        && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                        player.getCurrentColor() != System.Windows.Media.Brushes.Yellow)
-                    {
-                        DrawLine(System.Windows.Media.Brushes.Yellow, player.getCurrentStroke(), player);
-                    }
-                    if (leftHandY >= yCoordStart + 3 * yCoordSteps && leftHandY < yCoordStart + 4 * yCoordSteps
-                        && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                        player.getCurrentColor() != System.Windows.Media.Brushes.Green)
-                    {
-                        DrawLine(System.Windows.Media.Brushes.Green, player.getCurrentStroke(), player);
-                    }
-                    if (leftHandY >= yCoordStart + 4 * yCoordSteps && leftHandY < yCoordStart + 5 * yCoordSteps
-                        && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                        player.getCurrentColor() != System.Windows.Media.Brushes.Red)
-                    {
-                        DrawLine(System.Windows.Media.Brushes.Red, player.getCurrentStroke(), player);
-                    }
-                    if (leftHandY >= yCoordStart + 5 * yCoordSteps && leftHandY < yCoordStart + 6 * yCoordSteps
-                        && leftHandX < xCoord1 && leftHandX > xCoord2 &&
-                        player.getCurrentColor() != System.Windows.Media.Brushes.Black)
-                    {
-                        DrawLine(System.Windows.Media.Brushes.Black, player.getCurrentStroke(), player);
-                    }
+                    DrawLine(System.Windows.Media.Brushes.White, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + yCoordSteps && leftHandY < yCoordStart + 2 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Blue)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Blue, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + 2 * yCoordSteps && leftHandY < yCoordStart + 3 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Yellow)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Yellow, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + 3 * yCoordSteps && leftHandY < yCoordStart + 4 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Green)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Green, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + 4 * yCoordSteps && leftHandY < yCoordStart + 5 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Red)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Red, player.getCurrentStroke(), player);
+                }
+                if (leftHandY >= yCoordStart + 5 * yCoordSteps && leftHandY < yCoordStart + 6 * yCoordSteps
+                    && leftHandX < xCoord1 && leftHandX > xCoord2 &&
+                    player.getCurrentColor() != System.Windows.Media.Brushes.Black)
+                {
+                    DrawLine(System.Windows.Media.Brushes.Black, player.getCurrentStroke(), player);
                 }
             }
         }
@@ -404,6 +404,7 @@ namespace wally
                     {
                         myPolyline = new Polyline();
                         myPolyline.StrokeThickness = 5;
+                        myPolyline.Stroke = System.Windows.Media.Brushes.White;
                         player.addLine(myPolyline);
                         player.getMyCanvas().Children.Add(player.getCurrentLine());
                     }
@@ -412,8 +413,7 @@ namespace wally
                         myPolyline = player.getCurrentLine();
                     }
 
-                    myPolyline.Stroke = System.Windows.Media.Brushes.White;
-                    myPolyline.StrokeThickness = 5;
+
 
 
                     if (skel.Position.Z > 0.7 && skel.Position.Z <= 2.0)
@@ -460,7 +460,7 @@ namespace wally
                         }
 
                         // Changing of stroke color with the left hand
-                        ColorSelection();
+                        ColorSelection(player);
                     }
                 }
             }
@@ -479,7 +479,7 @@ namespace wally
                         Skeleton skel = player.getSkeleton();
 
                         Point p = this.SkeletonPointToScreen(skel.Joints[JointType.HandRight].Position);
-                        Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position));
+                        Point playerPosition = stretchPointToScreen(this.SkeletonPointToScreen(skel.Position), player.getPlayersKinectId());
 
                         p = this.stretchPointToScreen(p, player.getPlayersKinectId());
 
@@ -489,7 +489,7 @@ namespace wally
                             );
                         dc.DrawImage(
                                 this.paintingColorsImg,
-                                new Rect(playerPosition.X - 500, 0, bucketsWidth, bucketsHeight)
+                                new Rect(playerPosition.X - 700, 0, bucketsWidth, bucketsHeight)
                             );
                     }
                 }
@@ -575,48 +575,14 @@ namespace wally
             //Console.WriteLine(kinect + " : " + screenPoint.X);
             if (kinect > 0)
             {
-                screenPoint.X += TargetWidth / (kinect + 1);
+                screenPoint.X += (TargetWidth / 4) * 3;
             }
             screenPoint.Y = point.Y * (this.Height / 480);
             return screenPoint;
         }
 
 
-        /// <summary>
-        /// Draws a bone line between two joints
-        /// </summary>
-        /// <param name="skeleton">skeleton to draw bones from</param>
-        /// <param name="drawingContext">drawing context to draw to</param>
-        /// <param name="jointType0">joint to start drawing from</param>
-        /// <param name="jointType1">joint to end drawing at</param>
-        private void DrawBone(Skeleton skeleton, DrawingContext drawingContext, JointType jointType0, JointType jointType1)
-        {
-            Joint joint0 = skeleton.Joints[jointType0];
-            Joint joint1 = skeleton.Joints[jointType1];
 
-            // If we can't find either of these joints, exit
-            if (joint0.TrackingState == JointTrackingState.NotTracked ||
-                joint1.TrackingState == JointTrackingState.NotTracked)
-            {
-                return;
-            }
-
-            // Don't draw if both points are inferred
-            if (joint0.TrackingState == JointTrackingState.Inferred &&
-                joint1.TrackingState == JointTrackingState.Inferred)
-            {
-                return;
-            }
-
-            // We assume all drawn bones are inferred unless BOTH joints are tracked
-            Pen drawPen = this.inferredBonePen;
-            if (joint0.TrackingState == JointTrackingState.Tracked && joint1.TrackingState == JointTrackingState.Tracked)
-            {
-                drawPen = this.trackedBonePen;
-            }
-
-            drawingContext.DrawLine(drawPen, this.SkeletonPointToScreen(joint0.Position), this.SkeletonPointToScreen(joint1.Position));
-        }
 
         /// <summary>
         /// Terminates the child process and sensor communication.

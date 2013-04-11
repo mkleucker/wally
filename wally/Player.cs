@@ -19,17 +19,19 @@ namespace wally
         private Polyline currentLine;
         private Skeleton mySkel;
         private int kinectProcessID;
-       // private System.Windows.Point NewPoint;
+        // private System.Windows.Point NewPoint;
         private System.Windows.Media.Brush currentColor;
         private double currentStroke;
         private Canvas myCanvas;
         private String lastPngImage;
 
-        public Player() {
+        public Player()
+        {
             this.isActive = false;
         }
 
-        public void activatePlayer (int ID, Skeleton skel, Polyline line, Canvas canvas) {
+        public void activatePlayer(int ID, Skeleton skel, Polyline line, Canvas canvas)
+        {
             this.isActive = true;
             this.currentLine = line;
             this.currentColor = System.Windows.Media.Brushes.White;
@@ -67,10 +69,12 @@ namespace wally
             this.currentColor = line.Stroke;
             this.currentStroke = line.StrokeThickness;
         }
-        public void setLastPngImg(String path) {
+        public void setLastPngImg(String path)
+        {
             this.lastPngImage = path;
         }
-        public String getLastPngImg() {
+        public String getLastPngImg()
+        {
             return this.lastPngImage;
         }
         public void setCurrentColor(System.Windows.Media.Brush brush)
@@ -106,17 +110,20 @@ namespace wally
         {
             return this.myPonylines.Count;
         }
-        public Canvas getMyCanvas() {
+        public Canvas getMyCanvas()
+        {
             return this.myCanvas;
         }
         public void addPointToCurrentLine(Point point)
         {
             this.currentLine.Points.Add(point);
         }
-        public bool getState() {
+        public bool getState()
+        {
             return this.isActive;
         }
-        public void setState(bool state) {
+        public void setState(bool state)
+        {
             this.isActive = state;
         }
 
