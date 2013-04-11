@@ -47,8 +47,8 @@ namespace wally
         private float bucketsHeight = 675;
 
         //Line that is drawn by right hand of the user
-       // private Polyline myPolyline;
-       // private Polyline currentLine;
+        // private Polyline myPolyline;
+        // private Polyline currentLine;
 
 
         private ArrayList players;
@@ -307,9 +307,9 @@ namespace wally
                 double xCoord1 = playerPosition.X - 100;
                 double xCoord2 = playerPosition.X - 100 - bucketsWidth;
                 double yCoordSteps = bucketsHeight / 6; //amount of colors used, currently 6 
-                double yCoordStart = 0; 
+                double yCoordStart = 0;
 
-                if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps 
+                if (leftHandY >= yCoordStart && leftHandY < yCoordStart + yCoordSteps
                     && leftHandX < xCoord1 && leftHandX > xCoord2
                     && player.getCurrentColor() != System.Windows.Media.Brushes.White)
                 {
@@ -504,7 +504,7 @@ namespace wally
         private void DrawLine(System.Windows.Media.Brush lineColor, double lineThickness, Player player)
         {
 
-           if (PaintingTimeOver)
+            if (PaintingTimeOver)
             {
                 SaveLinesAsImage();
                 // Create new image and set source path
@@ -517,7 +517,7 @@ namespace wally
                 image.Margin = new Thickness(0, 0, 0, 0); // origin
                 player.getMyCanvas().Width = this.ActualWidth;
                 player.getMyCanvas().Height = this.ActualHeight;
-                player.getMyCanvas().Children.Add(image); 
+                player.getMyCanvas().Children.Add(image);
 
                 for (int i = 0; i < player.getPonyCount() - 1; i++)
                 {
@@ -533,7 +533,7 @@ namespace wally
                 player.getMyCanvas().Children.Add(player.getCurrentLine());
             }
 
-           else
+            else
             {
                 Polyline newLine = new Polyline();
                 newLine.Stroke = lineColor;
@@ -565,10 +565,11 @@ namespace wally
         private Point stretchPointToScreen(Point point, int kinect)
         {
             Point screenPoint = new Point();
-            screenPoint.X = point.X * (this.Width / 640) * 4;
-            if (this.sensors.Count == 2)
+            int multiplicator = 4 / this.processes.Count;
+            screenPoint.X = point.X * (this.Width / 640) * multiplicator;
+            if (kinect > 1)
             {
-                screenPoint.X = screenPoint.X / (kinect + 1);
+                screenPoint.X += (TargetWidth / multiplicator) * kinect;
             }
             screenPoint.Y = point.Y * (this.Height / 480);
             return screenPoint;
@@ -720,7 +721,7 @@ namespace wally
                                             //new player recognized with old existing players
                                             Player newPlayer = new Player(i, skelNew, new Polyline());
                                             this.players.Add(newPlayer);
-                                           // System.Console.WriteLine("New Player created with KinectProcessID:" + i);
+                                            // System.Console.WriteLine("New Player created with KinectProcessID:" + i);
                                         }
                                     }
                                     else
@@ -731,7 +732,7 @@ namespace wally
                                         //System.Console.WriteLine("New Player created with no existing KinectProcessID:" + i);
                                     }
 
-                                   // System.Console.WriteLine("Current Players Count:" + this.players.Count);
+                                    // System.Console.WriteLine("Current Players Count:" + this.players.Count);
                                 }
                                 catch (Exception e)
                                 {
