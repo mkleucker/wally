@@ -194,6 +194,7 @@ namespace wally
 
             // Look through all sensors and start the first connected one.
             this.sensors = new ArrayList();
+            this.sensors.Reverse();
             foreach (var potentialSensor in KinectSensor.KinectSensors)
             {
                 //Status should e.g. not be "Initializing" or "NotPowered"
@@ -272,7 +273,7 @@ namespace wally
 
         private void PaintingTimer()
         {
-            CountDownClock(10, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
+            CountDownClock(30, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
         }
 
         ///// <summary>
@@ -540,26 +541,26 @@ namespace wally
                 {
                     if (pictureData[0] != null)
                     {
-                        Image image1 = new Image();
-                        image1.Source = new BitmapImage(new Uri((String)pictureData[0], UriKind.Absolute));
+                        Image1.Source = new BitmapImage(new Uri((String)pictureData[0], UriKind.Absolute));
 
-                        image1.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-                        image1.VerticalAlignment = System.Windows.VerticalAlignment.Top;
-                        image1.Margin = new Thickness(0, 0, TargetWidth / 2.5, 0); // origin
-                        myGrid.Children.Add(image1);
+                        Image1.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                        Image1.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                        Image1.Margin = new Thickness(0, 0, TargetWidth / 2.5, 0); // origin
+
                     }
 
                     if (pictureData.Count > 1)
                     {
-                        Image image2 = new Image();
-                        image2.Source = new BitmapImage(new Uri((String)pictureData[1], UriKind.Absolute));
 
-                        image2.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
-                        image2.VerticalAlignment = System.Windows.VerticalAlignment.Top;
-                        image2.Margin = new Thickness(TargetWidth / 2.5, 0, 0, 0); // origin
-                        myGrid.Children.Add(image2);
+                        Image2.Source = new BitmapImage(new Uri((String)pictureData[1], UriKind.Absolute));
+
+                        Image2.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
+                        Image2.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                        Image2.Margin = new Thickness(TargetWidth / 2.5, 0, 0, 0); // origin
                     }
-                    myGrid.FadeOut();
+                    var test = myGrid.FadeOut();
+                    test.Completed += new EventHandler(Story_Completed);
+                    test.Begin();
 
                 }
 
@@ -577,6 +578,21 @@ namespace wally
                 player.addLine(newLine);
                 player.getMyCanvas().Children.Add(player.getCurrentLine());
             }
+        }
+
+        private void Story_Completed(object sender, EventArgs e)
+        {
+            foreach (Canvas canvas in playerCanvases)
+            {
+                canvas.Children.Clear();
+            }
+            var test = myGrid.FadeIn();
+            test.Begin();
+            Image1.Source = null;
+            Image2.Source = null;
+            PaintingTimer();
+
+
         }
 
 

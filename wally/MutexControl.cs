@@ -11,25 +11,28 @@ namespace wally
 {
     public static class ControlAnimationExtensionMethods
     {
-        public static void FadeIn(this UIElement targetControl)
+        public static Storyboard FadeIn(this UIElement targetControl)
         {
             DoubleAnimation fadeInAnimation = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(1.5)));
             Storyboard.SetTarget(fadeInAnimation, targetControl);
             Storyboard.SetTargetProperty(fadeInAnimation, new PropertyPath(UIElement.OpacityProperty));
             Storyboard sb = new Storyboard();
             sb.Children.Add(fadeInAnimation);
-            sb.Begin();
+
+            return sb;
         }
 
-        public static void FadeOut(this UIElement targetControl)
+        public static Storyboard FadeOut(this UIElement targetControl)
         {
             DoubleAnimation fadeInAnimation = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromSeconds(4)));
             Storyboard.SetTarget(fadeInAnimation, targetControl);
             Storyboard.SetTargetProperty(fadeInAnimation, new PropertyPath(UIElement.OpacityProperty));
             Storyboard sb = new Storyboard();
             sb.Children.Add(fadeInAnimation);
-            sb.Begin();
+
+            return sb;
 
         }
+
     }
 }

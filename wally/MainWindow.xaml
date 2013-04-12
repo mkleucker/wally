@@ -16,6 +16,7 @@
         <TextBlock x:Name ="myTimer" FontSize="40"
                    Width="100" Height="40" Foreground="White" />
         <Image x:Name="MaskedColor" Stretch="Fill" />
-
+        <Image x:Name="Image1"/>
+        <Image x:Name="Image2"/>
     </Grid>
 </Window>
