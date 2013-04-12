@@ -116,7 +116,6 @@ namespace wally
         private MemoryMappedFile[,] skelFiles;
         private MemoryMappedViewAccessor[,] skelAccess;
 
-        private ArrayList skelData;
 
         static Mutex maskMutex;
         private MemoryMappedFile[] maskFiles;
@@ -188,8 +187,8 @@ namespace wally
 
 
 
-             Dispatcher.Invoke(DispatcherPriority.Send,
-                           new Action(PaintingTimer));
+            Dispatcher.Invoke(DispatcherPriority.Send,
+                          new Action(PaintingTimer));
 
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
@@ -207,9 +206,15 @@ namespace wally
             }
 
 
+            this.initMemoryFiles();
+
             var mappedfileThread = new Thread(MemoryMapData);
             mappedfileThread.SetApartmentState(ApartmentState.STA);
             mappedfileThread.Start();
+
+            var mappedfileMaskThread = new Thread(MemoryMapDataMask);
+            mappedfileMaskThread.SetApartmentState(ApartmentState.STA);
+            mappedfileMaskThread.Start();
 
             /// MUTEX Stuff
             this.processes = new System.Collections.ArrayList();
@@ -269,7 +274,7 @@ namespace wally
 
         private void PaintingTimer()
         {
-            CountDownClock(20, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
+            CountDownClock(10, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
         }
 
         ///// <summary>
@@ -294,6 +299,14 @@ namespace wally
             ts(count);
             dispatchTimer.Start();
 
+            //String timerText = timerValue.ToString();
+            //TextBlock myTimer = new TextBlock();
+            //myTimer.Height = 50;
+            //myTimer.Width = 200;
+            //myTimer.Text = timerText;
+            //myTimer.Foreground = new SolidColorBrush(Colors.Black);
+            //myCanvas.Children.Add(myTimer);
+            //timerValue--;
         }
 
         /// <summary>
@@ -524,12 +537,12 @@ namespace wally
 
             if (PaintingTimeOver)
             {
+
                 if (pictureData.Count != 0)
                 {
-                    if (pictureData[1] != null)
+                    if (pictureData[0] != null)
                     {
                         Image image1 = new Image();
-                        System.Console.WriteLine((String)pictureData[0]);
                         image1.Source = new BitmapImage(new Uri((String)pictureData[0], UriKind.Absolute));
 
                         image1.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
@@ -538,7 +551,7 @@ namespace wally
                         myGrid.Children.Add(image1);
                     }
 
-                    if (pictureData[1] != null)
+                    if (pictureData.Count > 1 && pictureData[1] != null)
                     {
                         Image image2 = new Image();
                         image2.Source = new BitmapImage(new Uri((String)pictureData[1], UriKind.Absolute));
@@ -549,32 +562,31 @@ namespace wally
                         myGrid.Children.Add(image2);
                     }
                 }
-                //Currently not in Use 
-                /*SaveLinesAsImage();
-                // Create new image and set source path
-                Image image = new Image();
-                image.Source = new BitmapImage(new Uri(player.getLastPngImg()));
+                //SaveLinesAsImage();
+                //// Create new image and set source path
+                //Image image = new Image();
+                //image.Source = new BitmapImage(new Uri(player.getLastPngImg()));
 
-                // Place image 
-                image.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-                image.VerticalAlignment = System.Windows.VerticalAlignment.Top;
-                image.Margin = new Thickness(0, 0, 0, 0); // origin
-                player.getMyCanvas().Width = this.ActualWidth;
-                player.getMyCanvas().Height = this.ActualHeight;
-                player.getMyCanvas().Children.Add(image);
+                //// Place image 
+                //image.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                //image.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                //image.Margin = new Thickness(0, 0, 0, 0); // origin
+                //player.getMyCanvas().Width = this.ActualWidth;
+                //player.getMyCanvas().Height = this.ActualHeight;
+                //player.getMyCanvas().Children.Add(image);
 
-                for (int i = 0; i < player.getPonyCount() - 1; i++)
-                {
-                    ArrayList ponyLines = player.getPonyLines();
-                    player.getMyCanvas().Children.Remove((Polyline)ponyLines[i]);
-                }
-                player.getPonyLines().Clear();
+                //for (int i = 0; i < player.getPonyCount() - 1; i++)
+                //{
+                //    ArrayList ponyLines = player.getPonyLines();
+                //    player.getMyCanvas().Children.Remove((Polyline)ponyLines[i]);
+                //}
+                //player.getPonyLines().Clear();
 
-                Polyline newLine = new Polyline();
-                newLine.Stroke = lineColor;
-                newLine.StrokeThickness = lineThickness;
-                player.addLine(newLine);
-                player.getMyCanvas().Children.Add(player.getCurrentLine()); */
+                //Polyline newLine = new Polyline();
+                //newLine.Stroke = lineColor;
+                //newLine.StrokeThickness = lineThickness;
+                //player.addLine(newLine);
+                //player.getMyCanvas().Children.Add(player.getCurrentLine());
             }
 
             else
@@ -661,9 +673,7 @@ namespace wally
             skeletonMutex.ReleaseMutex();
 
 
-            var maskMutex = new Mutex(true, "maskmutex");
-            byte[] maskTemp = new byte[mmf_mask.Length];
-            maskMutex.ReleaseMutex();
+
 
             var pictureMutex = new Mutex(true, "picturemutex");
             char[] pictureTemp = new char[mmf_picture.Length];
@@ -671,7 +681,7 @@ namespace wally
             pictureMutex.ReleaseMutex();
 
             // Create for each Kinect Sensor in the Child Processes  
-            this.initMemoryFiles();
+
 
             // ****************
             // SKELETON-MAPPING
@@ -779,6 +789,60 @@ namespace wally
                 long trackDelay = stopwatch.ElapsedMilliseconds;
                 // Get The Mask
 
+
+
+                for (int i = 0; i < pictureAccess.Length; i++)
+                {
+                    MemoryMappedViewAccessor reader = pictureAccess[i];
+
+                    pictureMutex.WaitOne();
+
+                    reader.ReadArray<char>(0, mmf_picture, 0, mmf_picture.Length);
+
+                    Array.Copy(mmf_picture, pictureTemp, mmf_picture.Length);
+                    pictureMutex.ReleaseMutex();
+
+                    string input = new String(pictureTemp);
+                    input = input.Replace("\0", string.Empty);
+
+                    if (!Enumerable.SequenceEqual(pictureTemp, emptyChar) && !pictureData.Contains(input))
+                    {
+                        if (pictureData.Count > i)
+                        {
+                            pictureData.RemoveAt(i);
+                        }
+                        pictureData.Insert(i, input);
+                    }
+
+
+
+                }
+
+                if (stopwatch.ElapsedMilliseconds < 33)
+                {
+                    Thread.Sleep((int)(33.0 - stopwatch.ElapsedMilliseconds));
+                }
+
+
+                // After all: REPAINT TIME!!!
+                Dispatcher.Invoke(DispatcherPriority.Send,
+                             new Action(DrawTimer));
+            }
+
+
+
+        }
+
+        private void MemoryMapDataMask()
+        {
+            var maskMutex = new Mutex(true, "maskmutex");
+            byte[] maskTemp = new byte[mmf_mask.Length];
+            maskMutex.ReleaseMutex();
+
+            Stopwatch stopwatch = new Stopwatch();
+
+            while (true)
+            {
                 for (int i = 0; i < maskAccess.Length; i++)
                 {
                     MemoryMappedViewAccessor reader = maskAccess[i];
@@ -794,39 +858,14 @@ namespace wally
                     maskData[i] = maskTemp;
                 }
 
-                for (int i = 0; i < pictureAccess.Length; i++)
-                {
-                    MemoryMappedViewAccessor reader = pictureAccess[i];
-
-                    pictureMutex.WaitOne();
-
-                    reader.ReadArray<char>(0, mmf_picture, 0, mmf_picture.Length);
-
-                    Array.Copy(mmf_picture, pictureTemp, mmf_picture.Length);
-                    pictureMutex.ReleaseMutex();
-
-                    if (!Enumerable.SequenceEqual(pictureTemp, emptyChar) && !pictureData.Contains(pictureTemp))
-                    {
-                        pictureData.Insert(i, (new String(pictureTemp)).Trim());
-                    }
-
-
-
-                }
-
-
                 if (stopwatch.ElapsedMilliseconds < 33)
                 {
                     Thread.Sleep((int)(33.0 - stopwatch.ElapsedMilliseconds));
                 }
 
-                // After all: REPAINT TIME!!!
                 Dispatcher.Invoke(DispatcherPriority.Send,
-                             new Action(DrawTimer));
+                             new Action(DrawMask));
             }
-
-
-
         }
 
         /// <summary>
@@ -882,7 +921,7 @@ namespace wally
         {
 
 
-            this.DrawMask();
+            //this.DrawMask();
             this.Painting();
             this.DrawSkeleton();
 
