@@ -562,6 +562,8 @@ namespace wally
                         myGrid.Children.Add(image2);
                     }
                 }
+
+                PaintingTimeOver = false;
                 //SaveLinesAsImage();
                 //// Create new image and set source path
                 //Image image = new Image();
@@ -587,6 +589,7 @@ namespace wally
                 //newLine.StrokeThickness = lineThickness;
                 //player.addLine(newLine);
                 //player.getMyCanvas().Children.Add(player.getCurrentLine());
+
             }
 
             else
