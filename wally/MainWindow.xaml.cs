@@ -108,8 +108,10 @@ namespace wally
         // Mutex
         static long MemoryMappedFileCapacitySkeleton = 2255;
         static long MemoryMappedFileCapacityMask = 307200;
+        static long MemoryMappedFileCapacityPicture = 600;
         private byte[] mmf_result;
         private byte[] mmf_mask;
+        private char[] mmf_picture;
 
         private MemoryMappedFile[,] skelFiles;
         private MemoryMappedViewAccessor[,] skelAccess;
@@ -120,6 +122,11 @@ namespace wally
         private MemoryMappedFile[] maskFiles;
         private MemoryMappedViewAccessor[] maskAccess;
         private ArrayList maskData;
+
+        static Mutex pictureMutex;
+        private MemoryMappedFile[] pictureFiles;
+        private MemoryMappedViewAccessor[] pictureAccess;
+        private ArrayList pictureData;
 
         public MainWindow()
         {
@@ -137,6 +144,7 @@ namespace wally
             //int size = ;
             mmf_result = new byte[MemoryMappedFileCapacitySkeleton];
             mmf_mask = new byte[MemoryMappedFileCapacityMask];
+            mmf_picture = new char[MemoryMappedFileCapacityPicture];
 
             //init players, max 4
             this.players = new ArrayList();
@@ -310,7 +318,7 @@ namespace wally
 
                     //only filename construction
                     string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
-                    string myPhotos = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures); //Eigene Dateien->Bilder
+                    string myPhotos = Environment.CurrentDirectory + "\\Resources"; //Im Build-Ordner ablegen
                     string path = System.IO.Path.Combine
                         (myPhotos, "KinectSnapshot-" + time + "player" + player.GetHashCode() + ".png");
                     player.setLastPngImg(path);
@@ -625,6 +633,9 @@ namespace wally
             var maskMutex = new Mutex(true, "maskmutex");
             maskMutex.ReleaseMutex();
 
+            var pictureMutex = new Mutex(true, "picturemutex");
+            pictureMutex.ReleaseMutex();
+
             // Create for each Kinect Sensor in the Child Processes  
             this.initMemoryFiles();
 
@@ -755,6 +766,26 @@ namespace wally
 
                 }
 
+                pictureData.Clear();
+                for (int i = 0; i < pictureAccess.Length; i++)
+                {
+                    MemoryMappedViewAccessor reader = pictureAccess[i];
+
+                    char[] temp = new char[mmf_picture.Length];
+
+                    pictureMutex.WaitOne();
+
+                    reader.ReadArray<char>(0, mmf_picture, 0, mmf_picture.Length);
+
+                    Array.Copy(mmf_picture, temp, mmf_picture.Length);
+
+                    pictureMutex.ReleaseMutex();
+
+                    pictureData.Add(temp);
+
+
+                }
+
 
                 if (stopwatch.ElapsedMilliseconds < 33)
                 {
@@ -784,6 +815,10 @@ namespace wally
             this.maskAccess = new MemoryMappedViewAccessor[count];
             this.maskData = new ArrayList();
 
+            this.pictureFiles = new MemoryMappedFile[count];
+            this.pictureAccess = new MemoryMappedViewAccessor[count];
+            this.pictureData = new ArrayList();
+
             string filename;
 
             for (int p = 0; p < count; p++)
@@ -804,6 +839,11 @@ namespace wally
                 this.maskFiles[p] = MemoryMappedFile.CreateNew(filename, MemoryMappedFileCapacityMask);
                 this.maskAccess[p] = this.maskFiles[p].CreateViewAccessor();
 
+                filename = "picture-" + p;
+                Console.WriteLine("Created : " + filename);
+                this.pictureFiles[p] = MemoryMappedFile.CreateNew(filename, MemoryMappedFileCapacityPicture);
+                this.pictureAccess[p] = this.pictureFiles[p].CreateViewAccessor();
+
                 // ... more Memory Files for other Channels.
             }
         }
@@ -817,6 +857,7 @@ namespace wally
             this.DrawMask();
             this.Painting();
             this.DrawSkeleton();
+            System.Console.WriteLine("Pfad zum Bild:" + new String((char[])pictureData[0]));
         }
 
         private void DrawMask()

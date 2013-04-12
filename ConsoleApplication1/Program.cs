@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
@@ -10,6 +11,11 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Markup;
+using System.Xaml;
 
 namespace KinectCommunication
 {
@@ -22,7 +28,10 @@ namespace KinectCommunication
     {
         private String processId;
 
-
+        bool pictureTaken = false;
+        bool pictureTransmitted = false;
+        String picturePath;
+        int colorFrameCounter = 0;
 
         private KinectSensor sensor;
 
@@ -35,6 +44,10 @@ namespace KinectCommunication
         static Mutex maskMutex;
         private MemoryMappedFile maskFile;
         private MemoryMappedViewAccessor maskWriter;
+
+        static Mutex pictureMutex;
+        private MemoryMappedFile pictureFile;
+        private MemoryMappedViewAccessor pictureWriter;
 
         // Shadowing the users
         private const DepthImageFormat DepthFormat = DepthImageFormat.Resolution320x240Fps30;
@@ -100,6 +113,10 @@ namespace KinectCommunication
                 maskMutex = Mutex.OpenExisting("maskmutex");
                 maskFile = MemoryMappedFile.OpenExisting("mask-" + pId);
                 maskWriter = maskFile.CreateViewAccessor();
+
+                pictureMutex = Mutex.OpenExisting("picturemutex");
+                pictureFile = MemoryMappedFile.OpenExisting("picture-" + pId);
+                pictureWriter = pictureFile.CreateViewAccessor();
 
             }
             catch (FileNotFoundException e)
@@ -260,6 +277,7 @@ namespace KinectCommunication
                     colorFrame.CopyPixelDataTo(this.colorPixels);
 
                     colorReceived = true;
+                    colorFrameCounter++;
                 }
             }
 
@@ -267,6 +285,7 @@ namespace KinectCommunication
 
             // do our processing outside of the using block
             // so that we return resources to the kinect as soon as possible
+
             if (true == depthReceived)
             {
                 this.sensor.CoordinateMapper.MapDepthFrameToColorFrame(
@@ -321,6 +340,44 @@ namespace KinectCommunication
                 }
             }
 
+            if (true == colorReceived && colorFrameCounter > 210 && false == pictureTaken) {
+
+                Console.WriteLine("ColorReceived");
+
+                WriteableBitmap targetBitmap = new WriteableBitmap(640,
+                                     480,
+                                     96d, 96d,
+                                     PixelFormats.Bgr32, null);
+
+                targetBitmap.WritePixels(new Int32Rect(0, 0, targetBitmap.PixelWidth, targetBitmap.PixelHeight),
+                        this.colorPixels, targetBitmap.PixelWidth * sizeof(int), 0);
+
+                // create a png bitmap encoder which knows how to save a .png file
+                BitmapEncoder encoder = new PngBitmapEncoder();
+
+                // create frame from the writable bitmap and add to encoder
+                encoder.Frames.Add(BitmapFrame.Create(targetBitmap));
+
+                //only filename construction
+                string time = System.DateTime.Now.ToString("hh'-'mm'-'ss", CultureInfo.CurrentUICulture.DateTimeFormat);
+                string myPhotos = Environment.CurrentDirectory + "\\Resources"; //Im Build-Ordner ablegen
+                string path = System.IO.Path.Combine
+                    (myPhotos, "KinectSnapshot-" + time + "kinect" + processId + ".png");
+                picturePath = path;
+
+                // write the new file to disk
+                try
+                {
+                    using (FileStream fs = new FileStream(path, FileMode.Create))
+                    {
+                        encoder.Save(fs);
+                        pictureTaken = true;
+                    }
+                }
+                catch (IOException)
+                {
+                }
+            }
 
         }
 
@@ -401,6 +458,28 @@ namespace KinectCommunication
                         );
                     }
                     maskMutex.ReleaseMutex();
+
+                    // TRANSFER THE Picture-Path
+                        pictureMutex.WaitOne();
+
+                        if (this.picturePath != null)
+                        {
+                            char[] buffer = picturePath.ToCharArray();
+                            pictureWriter.WriteArray<char>(0,
+                                buffer,
+                                0,
+                                buffer.Length);
+                            pictureTransmitted = true;
+                        }
+                        else
+                        {
+                            pictureWriter.WriteArray<char>(0,
+                                emptyChar,
+                                0,
+                                emptyChar.Length
+                            );
+                        }
+                        pictureMutex.ReleaseMutex();
 
                     DateTime after = DateTime.Now;
                     int delay = after.Millisecond - before.Millisecond;
