@@ -117,12 +117,10 @@ namespace wally
         private MemoryMappedViewAccessor[,] skelAccess;
 
 
-        static Mutex maskMutex;
         private MemoryMappedFile[] maskFiles;
         private MemoryMappedViewAccessor[] maskAccess;
         private byte[][] maskData;
 
-        static Mutex pictureMutex;
         private MemoryMappedFile[] pictureFiles;
         private MemoryMappedViewAccessor[] pictureAccess;
         private ArrayList pictureData;
@@ -551,44 +549,19 @@ namespace wally
                         myGrid.Children.Add(image1);
                     }
 
-                    if (pictureData.Count > 1 && pictureData[1] != null)
+                    if (pictureData.Count > 1)
                     {
                         Image image2 = new Image();
                         image2.Source = new BitmapImage(new Uri((String)pictureData[1], UriKind.Absolute));
 
                         image2.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
                         image2.VerticalAlignment = System.Windows.VerticalAlignment.Top;
-                        image2.Margin = new Thickness(0, 0, 0, TargetWidth / 2); // origin
+                        image2.Margin = new Thickness(0, 0, TargetWidth / 2, 0); // origin
                         myGrid.Children.Add(image2);
                     }
                 }
 
                 PaintingTimeOver = false;
-                //SaveLinesAsImage();
-                //// Create new image and set source path
-                //Image image = new Image();
-                //image.Source = new BitmapImage(new Uri(player.getLastPngImg()));
-
-                //// Place image 
-                //image.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-                //image.VerticalAlignment = System.Windows.VerticalAlignment.Top;
-                //image.Margin = new Thickness(0, 0, 0, 0); // origin
-                //player.getMyCanvas().Width = this.ActualWidth;
-                //player.getMyCanvas().Height = this.ActualHeight;
-                //player.getMyCanvas().Children.Add(image);
-
-                //for (int i = 0; i < player.getPonyCount() - 1; i++)
-                //{
-                //    ArrayList ponyLines = player.getPonyLines();
-                //    player.getMyCanvas().Children.Remove((Polyline)ponyLines[i]);
-                //}
-                //player.getPonyLines().Clear();
-
-                //Polyline newLine = new Polyline();
-                //newLine.Stroke = lineColor;
-                //newLine.StrokeThickness = lineThickness;
-                //player.addLine(newLine);
-                //player.getMyCanvas().Children.Add(player.getCurrentLine());
 
             }
 
@@ -672,14 +645,14 @@ namespace wally
 
 
             var skeletonMutex = new Mutex(true, "skeletonmutex");
-            byte[] skelTemp = new byte[mmf_result.Length];
+
             skeletonMutex.ReleaseMutex();
 
 
 
 
             var pictureMutex = new Mutex(true, "picturemutex");
-            char[] pictureTemp = new char[mmf_picture.Length];
+
             char[] emptyChar = new char[mmf_picture.Length];
             pictureMutex.ReleaseMutex();
 
@@ -711,6 +684,8 @@ namespace wally
                     {
                         for (int j = 0; j < 2; j++)
                         {
+
+                            byte[] skelTemp = new byte[mmf_result.Length];
                             MemoryMappedViewAccessor accessor = this.skelAccess[i, j];
 
                             skeletonMutex.WaitOne();
@@ -796,6 +771,7 @@ namespace wally
 
                 for (int i = 0; i < pictureAccess.Length; i++)
                 {
+                    char[] pictureTemp = new char[mmf_picture.Length];
                     MemoryMappedViewAccessor reader = pictureAccess[i];
 
                     pictureMutex.WaitOne();
@@ -813,8 +789,12 @@ namespace wally
                         if (pictureData.Count > i)
                         {
                             pictureData.RemoveAt(i);
+                            pictureData.Insert(i, input);
                         }
-                        pictureData.Insert(i, input);
+                        else
+                        {
+                            pictureData.Add(i);
+                        }
                     }
 
 
@@ -839,7 +819,7 @@ namespace wally
         private void MemoryMapDataMask()
         {
             var maskMutex = new Mutex(true, "maskmutex");
-            byte[] maskTemp = new byte[mmf_mask.Length];
+
             maskMutex.ReleaseMutex();
 
             Stopwatch stopwatch = new Stopwatch();
@@ -851,6 +831,7 @@ namespace wally
                     MemoryMappedViewAccessor reader = maskAccess[i];
 
                     maskMutex.WaitOne();
+                    byte[] maskTemp = new byte[mmf_mask.Length];
 
                     reader.ReadArray<byte>(0, mmf_mask, 0, mmf_mask.Length);
 
@@ -858,7 +839,7 @@ namespace wally
 
                     maskMutex.ReleaseMutex();
 
-                    maskData[i] = maskTemp;
+                    this.maskData[i] = maskTemp;
                 }
 
                 if (stopwatch.ElapsedMilliseconds < 33)
@@ -924,7 +905,6 @@ namespace wally
         {
 
 
-            //this.DrawMask();
             this.Painting();
             this.DrawSkeleton();
 
@@ -933,9 +913,6 @@ namespace wally
 
         private void DrawMask()
         {
-
-
-
 
             double dpi = 96;
             int origWidth = 320;
@@ -947,14 +924,15 @@ namespace wally
             // Prepare MaskArray
 
 
-            byte[] incomingMask = this.maskData[0];
+            byte[] incomingMask;
             if (this.maskData.Length > 1)
             {
-                incomingMask = new byte[incomingMask.Length * this.maskData.Length];
+                incomingMask = new byte[this.maskData[0].Length * this.maskData.Length];
 
                 int line = 0;
                 for (int i = 0; i < incomingMask.Length; i++)
                 {
+
 
                     int currentLine = i % width;
                     int position = line * origWidth + (currentLine % origWidth);
@@ -971,6 +949,10 @@ namespace wally
                         line++;
                     }
                 }
+            }
+            else
+            {
+                incomingMask = maskData[0];
             }
 
             int j = 0;
