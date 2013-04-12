@@ -559,7 +559,11 @@ namespace wally
                         image2.Margin = new Thickness(TargetWidth / 2.5, 0, 0, 0); // origin
                         myGrid.Children.Add(image2);
                     }
+                    myGrid.FadeOut();
+
                 }
+
+
 
                 PaintingTimeOver = false;
 
@@ -1009,6 +1013,10 @@ namespace wally
             }
         }
 
-
     }
 }
+
+
+
+
+

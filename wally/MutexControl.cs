@@ -4,37 +4,32 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media.Animation;
 
 namespace wally
 {
-    public class MutexControl
+    public static class ControlAnimationExtensionMethods
     {
-        private MainWindow parent;
-        private static int Runs = 0;
-
-        public MutexControl(MainWindow parent)
+        public static void FadeIn(this UIElement targetControl)
         {
-            this.parent = parent;
-
-
+            DoubleAnimation fadeInAnimation = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(1.5)));
+            Storyboard.SetTarget(fadeInAnimation, targetControl);
+            Storyboard.SetTargetProperty(fadeInAnimation, new PropertyPath(UIElement.OpacityProperty));
+            Storyboard sb = new Storyboard();
+            sb.Children.Add(fadeInAnimation);
+            sb.Begin();
         }
 
-        public void mtThreading()
+        public static void FadeOut(this UIElement targetControl)
         {
-            var mutex = new Mutex(true, "mymutex");
-            mutex.ReleaseMutex(); //Releasing at first
+            DoubleAnimation fadeInAnimation = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromSeconds(4)));
+            Storyboard.SetTarget(fadeInAnimation, targetControl);
+            Storyboard.SetTargetProperty(fadeInAnimation, new PropertyPath(UIElement.OpacityProperty));
+            Storyboard sb = new Storyboard();
+            sb.Children.Add(fadeInAnimation);
+            sb.Begin();
 
-            while (true)
-            {
-                mutex.WaitOne();
-                try
-                {
-                    Runs++;
-                    Console.WriteLine(Runs);
-                }
-                catch (Exception ex) { }
-                mutex.ReleaseMutex();
-            }
         }
     }
 }
