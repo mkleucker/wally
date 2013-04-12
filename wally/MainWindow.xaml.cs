@@ -144,7 +144,7 @@ namespace wally
             //int size = ;
             mmf_result = new byte[MemoryMappedFileCapacitySkeleton];
             mmf_mask = new byte[MemoryMappedFileCapacityMask];
-            mmf_picture = new char[MemoryMappedFileCapacityPicture];
+            mmf_picture = new char[MemoryMappedFileCapacityPicture / 2];
 
             //init players, max 4
             this.players = new ArrayList();
@@ -772,16 +772,20 @@ namespace wally
                     MemoryMappedViewAccessor reader = pictureAccess[i];
 
                     char[] temp = new char[mmf_picture.Length];
+                    char[] emptyChar = new char[mmf_picture.Length];
 
                     pictureMutex.WaitOne();
 
                     reader.ReadArray<char>(0, mmf_picture, 0, mmf_picture.Length);
 
                     Array.Copy(mmf_picture, temp, mmf_picture.Length);
-
                     pictureMutex.ReleaseMutex();
 
-                    pictureData.Add(temp);
+                    if (!Enumerable.SequenceEqual(temp, emptyChar))
+                    {
+                        pictureData.Add(temp.ToString());
+                    }
+
 
 
                 }
@@ -857,7 +861,8 @@ namespace wally
             this.DrawMask();
             this.Painting();
             this.DrawSkeleton();
-            System.Console.WriteLine("Pfad zum Bild:" + new String((char[])pictureData[0]));
+
+
         }
 
         private void DrawMask()

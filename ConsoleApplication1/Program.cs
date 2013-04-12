@@ -340,7 +340,8 @@ namespace KinectCommunication
                 }
             }
 
-            if (true == colorReceived && colorFrameCounter > 210 && false == pictureTaken) {
+            if (true == colorReceived && colorFrameCounter > 210 && false == pictureTaken)
+            {
 
                 Console.WriteLine("ColorReceived");
 
@@ -389,7 +390,7 @@ namespace KinectCommunication
 
             byte[] emptyByteSkeleton = new byte[2255];
             byte[] emptyByteMask = new byte[307200];
-            int[] emptyInt = new int[1] { -2 };
+            char[] emptyChar = new char[300];
 
             while (true)
             {
@@ -460,26 +461,26 @@ namespace KinectCommunication
                     maskMutex.ReleaseMutex();
 
                     // TRANSFER THE Picture-Path
-                        pictureMutex.WaitOne();
+                    pictureMutex.WaitOne();
 
-                        if (this.picturePath != null)
-                        {
-                            char[] buffer = picturePath.ToCharArray();
-                            pictureWriter.WriteArray<char>(0,
-                                buffer,
-                                0,
-                                buffer.Length);
-                            pictureTransmitted = true;
-                        }
-                        else
-                        {
-                            pictureWriter.WriteArray<char>(0,
-                                emptyChar,
-                                0,
-                                emptyChar.Length
-                            );
-                        }
-                        pictureMutex.ReleaseMutex();
+                    if (this.picturePath != null)
+                    {
+                        char[] buffer = picturePath.ToCharArray();
+                        pictureWriter.WriteArray<char>(0,
+                            buffer,
+                            0,
+                            buffer.Length);
+                        pictureTransmitted = true;
+                    }
+                    else
+                    {
+                        pictureWriter.WriteArray<char>(0,
+                            emptyChar,
+                            0,
+                            emptyChar.Length
+                        );
+                    }
+                    pictureMutex.ReleaseMutex();
 
                     DateTime after = DateTime.Now;
                     int delay = after.Millisecond - before.Millisecond;
