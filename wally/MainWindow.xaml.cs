@@ -547,7 +547,7 @@ namespace wally
 
                         image1.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
                         image1.VerticalAlignment = System.Windows.VerticalAlignment.Top;
-                        image1.Margin = new Thickness(0, 0, 0, TargetWidth / 2); // origin
+                        image1.Margin = new Thickness(0, 0, 0, 0); // origin
                         myGrid.Children.Add(image1);
                     }
 
