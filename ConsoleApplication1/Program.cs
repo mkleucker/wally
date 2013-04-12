@@ -330,7 +330,8 @@ namespace KinectCommunication
         private void transmitData()
         {
 
-            byte[] emptyByte = new byte[1] { 0 };
+            byte[] emptyByteSkeleton = new byte[2255];
+            byte[] emptyByteMask = new byte[307200];
             int[] emptyInt = new int[1] { -2 };
 
             while (true)
@@ -368,8 +369,8 @@ namespace KinectCommunication
                         }
                         else
                         {
-
-                            writer.WriteArray<byte>(0, emptyByte, 0, emptyByte.Length);
+                            //writer.Flush();
+                            writer.WriteArray<byte>(0, emptyByteSkeleton, 0, emptyByteSkeleton.Length);
 
                             // Console.WriteLine("Empty transmitted");
                             continue;
@@ -394,9 +395,9 @@ namespace KinectCommunication
                     else
                     {
                         maskWriter.WriteArray<byte>(0,
-                            emptyByte,
+                            emptyByteMask,
                             0,
-                            emptyByte.Length
+                            emptyByteMask.Length
                         );
                     }
                     maskMutex.ReleaseMutex();

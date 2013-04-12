@@ -42,6 +42,18 @@ namespace wally
             this.myCanvas = canvas;
         }
 
+        public void deactivatePlayer()
+        {
+            this.isActive = false;
+            this.currentLine = null;
+            this.currentColor = null;
+            this.currentStroke = 0;
+            this.mySkel = null;
+            this.kinectProcessID = 0;
+            this.myPonylines = null;
+            this.myCanvas = null;
+        }
+
         public void addLine(Polyline line)
         {
             this.myPonylines.Add(line);

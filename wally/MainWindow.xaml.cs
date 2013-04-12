@@ -483,6 +483,7 @@ namespace wally
 
                         p = this.stretchPointToScreen(p, player.getPlayersKinectId());
 
+
                         dc.DrawImage(
                                 this.canImg,
                                 new Rect(p.X - 50, p.Y, 50, 50)
@@ -492,6 +493,7 @@ namespace wally
                                 new Rect(playerPosition.X - 700, 0, bucketsWidth, bucketsHeight)
                             );
                     }
+
                 }
 
 
@@ -642,7 +644,8 @@ namespace wally
                 stopwatch.Start();
 
                 // Gather the skeletons
-                this.skelData = new ArrayList();
+                ArrayList activePlayers = new ArrayList();
+
                 if (this.skelAccess != null)
                 {
 
@@ -663,7 +666,6 @@ namespace wally
 
                             skeletonMutex.ReleaseMutex();
 
-
                             if (!empty)
                             {
                                 try
@@ -672,7 +674,6 @@ namespace wally
                                     MemoryStream ms = new MemoryStream(mmf_result);
                                     Skeleton skelNew = (Skeleton)bf.Deserialize(ms);
 
-                                    this.skelData.Add(skelNew);
                                     bool playerRecognized = false;
 
                                     foreach (Player player in players)
@@ -684,6 +685,7 @@ namespace wally
                                                 //old player recognized, create nothing
                                                 player.setSkeleton(skelNew);
                                                 playerRecognized = true;
+                                                activePlayers.Add(players.IndexOf(player));
                                             }
 
                                         }
@@ -696,26 +698,35 @@ namespace wally
                                             {
                                                 //new player recognized
                                                 ((Player)players[k]).activatePlayer(i, skelNew, null, (Canvas)this.playerCanvases[k]);
+                                                activePlayers.Add(k);
                                                 break;
                                             }
                                         }
-
-
-
                                     }
+
+
                                 }
                                 catch (Exception e)
                                 {
-
+                                    // Catches BinaryFormatter Failures
+                                    Console.WriteLine(e);
                                 }
 
                             }
 
 
+                        } // END FOR EACH KINECT CHANNEL
 
+                    } // END FOR EACH KINECT
 
+                    // A player has left the game
+                    for (int i = 0; i < this.players.Count; i++)
+                    {
+                        Player player = (Player)this.players[i];
+                        if (player.getState() && !activePlayers.Contains(i))
+                        {
+                            player.deactivatePlayer();
                         }
-
                     }
 
 
