@@ -121,12 +121,18 @@ namespace wally
         static Mutex maskMutex;
         private MemoryMappedFile[] maskFiles;
         private MemoryMappedViewAccessor[] maskAccess;
-        private ArrayList maskData;
+        private byte[][] maskData;
 
         static Mutex pictureMutex;
         private MemoryMappedFile[] pictureFiles;
         private MemoryMappedViewAccessor[] pictureAccess;
         private ArrayList pictureData;
+
+
+
+
+        private int maskBitsPerPixel;
+        private PixelFormat maskPixelFormat;
 
         public MainWindow()
         {
@@ -135,12 +141,17 @@ namespace wally
             //this.WindowStyle = WindowStyle.None;
             //this.WindowState = WindowState.Maximized;
             this.Cursor = System.Windows.Input.Cursors.None;
+
+
         }
 
 
         //Execute startup tasks here
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
+            this.maskBitsPerPixel = PixelFormats.Bgra32.BitsPerPixel;
+            this.maskPixelFormat = PixelFormats.Bgra32;
+
             //int size = ;
             mmf_result = new byte[MemoryMappedFileCapacitySkeleton];
             mmf_mask = new byte[MemoryMappedFileCapacityMask];
@@ -628,12 +639,17 @@ namespace wally
 
 
             var skeletonMutex = new Mutex(true, "skeletonmutex");
+            byte[] skelTemp = new byte[mmf_result.Length];
             skeletonMutex.ReleaseMutex();
 
+
             var maskMutex = new Mutex(true, "maskmutex");
+            byte[] maskTemp = new byte[mmf_mask.Length];
             maskMutex.ReleaseMutex();
 
             var pictureMutex = new Mutex(true, "picturemutex");
+            char[] pictureTemp = new char[mmf_picture.Length];
+            char[] emptyChar = new char[mmf_picture.Length];
             pictureMutex.ReleaseMutex();
 
             // Create for each Kinect Sensor in the Child Processes  
@@ -665,15 +681,14 @@ namespace wally
                         for (int j = 0; j < 2; j++)
                         {
                             MemoryMappedViewAccessor accessor = this.skelAccess[i, j];
-                            byte[] temp = new byte[mmf_result.Length];
 
                             skeletonMutex.WaitOne();
 
                             accessor.ReadArray<byte>(0, mmf_result, 0, mmf_result.Length);
 
-                            Array.Copy(mmf_result, temp, mmf_result.Length);
+                            Array.Copy(mmf_result, skelTemp, mmf_result.Length);
 
-                            empty = temp.All(B => B == default(Byte));
+                            empty = skelTemp.All(B => B == default(Byte));
 
                             skeletonMutex.ReleaseMutex();
 
@@ -746,44 +761,35 @@ namespace wally
                 long trackDelay = stopwatch.ElapsedMilliseconds;
                 // Get The Mask
 
-                maskData.Clear();
                 for (int i = 0; i < maskAccess.Length; i++)
                 {
                     MemoryMappedViewAccessor reader = maskAccess[i];
-
-                    byte[] temp = new byte[mmf_mask.Length];
 
                     maskMutex.WaitOne();
 
                     reader.ReadArray<byte>(0, mmf_mask, 0, mmf_mask.Length);
 
-                    Array.Copy(mmf_mask, temp, mmf_mask.Length);
+                    Array.Copy(mmf_mask, maskTemp, mmf_mask.Length);
 
                     maskMutex.ReleaseMutex();
 
-                    maskData.Add(temp);
-
-
+                    maskData[i] = maskTemp;
                 }
 
-                pictureData.Clear();
                 for (int i = 0; i < pictureAccess.Length; i++)
                 {
                     MemoryMappedViewAccessor reader = pictureAccess[i];
-
-                    char[] temp = new char[mmf_picture.Length];
-                    char[] emptyChar = new char[mmf_picture.Length];
 
                     pictureMutex.WaitOne();
 
                     reader.ReadArray<char>(0, mmf_picture, 0, mmf_picture.Length);
 
-                    Array.Copy(mmf_picture, temp, mmf_picture.Length);
+                    Array.Copy(mmf_picture, pictureTemp, mmf_picture.Length);
                     pictureMutex.ReleaseMutex();
 
-                    if (!Enumerable.SequenceEqual(temp, emptyChar))
+                    if (!Enumerable.SequenceEqual(pictureTemp, emptyChar) && pictureData.Contains(pictureTemp))
                     {
-                        pictureData.Add(temp.ToString());
+                        pictureData.Insert(i, pictureTemp.ToString());
                     }
 
 
@@ -817,11 +823,11 @@ namespace wally
 
             this.maskFiles = new MemoryMappedFile[count];
             this.maskAccess = new MemoryMappedViewAccessor[count];
-            this.maskData = new ArrayList();
+            this.maskData = new byte[count][];
 
             this.pictureFiles = new MemoryMappedFile[count];
             this.pictureAccess = new MemoryMappedViewAccessor[count];
-            this.pictureData = new ArrayList();
+            this.pictureData = new ArrayList(count);
 
             string filename;
 
@@ -870,20 +876,21 @@ namespace wally
 
 
 
+
             double dpi = 96;
             int origWidth = 320;
-            int width = origWidth * this.maskData.Count;
+            int width = origWidth * this.maskData.Length;
             int height = 240;
-            int stride = (width * PixelFormats.Bgra32.BitsPerPixel) / 8;
+            int stride = (width * this.maskBitsPerPixel) / 8;
             byte[] pixelData = new byte[height * stride];
 
             // Prepare MaskArray
 
 
-            byte[] incomingMask = (byte[])this.maskData[0];
-            if (this.maskData.Count > 1)
+            byte[] incomingMask = this.maskData[0];
+            if (this.maskData.Length > 1)
             {
-                incomingMask = new byte[incomingMask.Length * this.maskData.Count];
+                incomingMask = new byte[incomingMask.Length * this.maskData.Length];
 
                 int line = 0;
                 for (int i = 0; i < incomingMask.Length; i++)
@@ -907,22 +914,24 @@ namespace wally
             }
 
             int j = 0;
-            for (int i = 0; i < height * stride; i += (PixelFormats.Bgra32.BitsPerPixel / 8))
+            for (int i = 0; i < height * stride; i += (this.maskBitsPerPixel / 8))
             {
-                pixelData[i] = (byte)255;  // BLUE
-                pixelData[i + 1] = (byte)255; // GREEN
-                pixelData[i + 2] = (byte)255; // RED
-                if (incomingMask[j] != (byte)0)
+                pixelData[i] = 255;  // BLUE
+                pixelData[i + 1] = 255; // GREEN
+                pixelData[i + 2] = 255; // RED
+                pixelData[i + 3] = 0;
+                if (incomingMask[j] != 0)
                 {
-                    pixelData[i + 3] = (byte)100; // ALPHA
+                    pixelData[i + 3] = 100; // ALPHA
                 }
                 else
                 {
-                    pixelData[i + 3] = (byte)0;
+                    pixelData[i + 3] = 0;
                 }
 
                 j++;
             }
+
 
 
 
