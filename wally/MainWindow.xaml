@@ -13,7 +13,7 @@
         <Canvas x:Name="myCanvas" Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <Image x:Name="MyImage" Stretch="Fill"/>
         </Canvas>
-        <TextBlock x:Name ="myTimer" FontSize="40" Canvas.Right="10" Canvas.Top ="10"
+        <TextBlock x:Name ="myTimer" FontSize="40"
                    Width="100" Height="40" Foreground="White" />
         <Image x:Name="MaskedColor" Stretch="Fill" />
 

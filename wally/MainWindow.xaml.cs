@@ -188,8 +188,8 @@ namespace wally
 
 
 
-            // Dispatcher.Invoke(DispatcherPriority.Send,
-            //               new Action(PaintingTimer));
+             Dispatcher.Invoke(DispatcherPriority.Send,
+                           new Action(PaintingTimer));
 
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
             this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
@@ -269,7 +269,7 @@ namespace wally
 
         private void PaintingTimer()
         {
-            CountDownClock(60, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
+            CountDownClock(20, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
         }
 
         ///// <summary>
@@ -294,14 +294,6 @@ namespace wally
             ts(count);
             dispatchTimer.Start();
 
-            //String timerText = timerValue.ToString();
-            //TextBlock myTimer = new TextBlock();
-            //myTimer.Height = 50;
-            //myTimer.Width = 200;
-            //myTimer.Text = timerText;
-            //myTimer.Foreground = new SolidColorBrush(Colors.Black);
-            //myCanvas.Children.Add(myTimer);
-            //timerValue--;
         }
 
         /// <summary>
@@ -532,7 +524,33 @@ namespace wally
 
             if (PaintingTimeOver)
             {
-                SaveLinesAsImage();
+                if (pictureData.Count != 0)
+                {
+                    if (pictureData[1] != null)
+                    {
+                        Image image1 = new Image();
+                        System.Console.WriteLine((String)pictureData[0]);
+                        image1.Source = new BitmapImage(new Uri((String)pictureData[0], UriKind.Absolute));
+
+                        image1.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                        image1.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                        image1.Margin = new Thickness(0, 0, 0, TargetWidth / 2); // origin
+                        myGrid.Children.Add(image1);
+                    }
+
+                    if (pictureData[1] != null)
+                    {
+                        Image image2 = new Image();
+                        image2.Source = new BitmapImage(new Uri((String)pictureData[1], UriKind.Absolute));
+
+                        image2.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                        image2.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+                        image2.Margin = new Thickness(0, 0, 0, TargetWidth / 2); // origin
+                        myGrid.Children.Add(image2);
+                    }
+                }
+                //Currently not in Use 
+                /*SaveLinesAsImage();
                 // Create new image and set source path
                 Image image = new Image();
                 image.Source = new BitmapImage(new Uri(player.getLastPngImg()));
@@ -556,7 +574,7 @@ namespace wally
                 newLine.Stroke = lineColor;
                 newLine.StrokeThickness = lineThickness;
                 player.addLine(newLine);
-                player.getMyCanvas().Children.Add(player.getCurrentLine());
+                player.getMyCanvas().Children.Add(player.getCurrentLine()); */
             }
 
             else
@@ -787,9 +805,9 @@ namespace wally
                     Array.Copy(mmf_picture, pictureTemp, mmf_picture.Length);
                     pictureMutex.ReleaseMutex();
 
-                    if (!Enumerable.SequenceEqual(pictureTemp, emptyChar) && pictureData.Contains(pictureTemp))
+                    if (!Enumerable.SequenceEqual(pictureTemp, emptyChar) && !pictureData.Contains(pictureTemp))
                     {
-                        pictureData.Insert(i, pictureTemp.ToString());
+                        pictureData.Insert(i, (new String(pictureTemp)).Trim());
                     }
 
 
