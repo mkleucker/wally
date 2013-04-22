@@ -131,30 +131,35 @@ namespace wally
         private int maskBitsPerPixel;
         private PixelFormat maskPixelFormat;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public MainWindow()
         {
+
             InitializeComponent();
-
-            //this.WindowStyle = WindowStyle.None;
-            //this.WindowState = WindowState.Maximized;
-            this.Cursor = System.Windows.Input.Cursors.None;
-
 
         }
 
 
-        //Execute startup tasks here
+        /// <summary>
+        /// Initialize everything.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
+            // Use class variables for performance increases
             this.maskBitsPerPixel = PixelFormats.Bgra32.BitsPerPixel;
             this.maskPixelFormat = PixelFormats.Bgra32;
 
-            //int size = ;
-            mmf_result = new byte[MemoryMappedFileCapacitySkeleton];
-            mmf_mask = new byte[MemoryMappedFileCapacityMask];
-            mmf_picture = new char[MemoryMappedFileCapacityPicture / 2];
+            // Initialize the local representation of the MMF
+            this.mmf_result = new byte[MemoryMappedFileCapacitySkeleton];
+            this.mmf_mask = new byte[MemoryMappedFileCapacityMask];
+            this.mmf_picture = new char[MemoryMappedFileCapacityPicture / 2];
 
-            //init players, max 4
+            // Init 4 Players. Uncool to do it this way, we know.
+            // Because threads and stuff.
             this.players = new ArrayList();
             this.player1 = new Player();
             this.player2 = new Player();
@@ -164,9 +169,6 @@ namespace wally
             this.players.Add(player2);
             this.players.Add(player3);
             this.players.Add(player4);
-
-
-            this.DeviceCount = KinectSensor.KinectSensors.Count;
 
             //Each player gets own canvas, max 4
             this.playerCanvases = new ArrayList();
@@ -183,18 +185,20 @@ namespace wally
             myGrid.Children.Add(canvas3);
             myGrid.Children.Add(canvas4);
 
-
-
+            // Start the Drawing Timer directly
             Dispatcher.Invoke(DispatcherPriority.Send,
                           new Action(PaintingTimer));
 
+
+            // Used for programmatically drawing later
             this.drawingGroup = new DrawingGroup(); //we will use for drawing
-            this.imageSource = new DrawingImage(this.drawingGroup); //imagesource we can use in our image control
-            MyImage.Source = this.imageSource; //display the drawing to use our image control
+            this.imageSource = new DrawingImage(this.drawingGroup);
+            MyImage.Source = this.imageSource;
 
             // Look through all sensors and start the first connected one.
+            this.DeviceCount = KinectSensor.KinectSensors.Count;
             this.sensors = new ArrayList();
-            this.sensors.Reverse();
+
             foreach (var potentialSensor in KinectSensor.KinectSensors)
             {
                 //Status should e.g. not be "Initializing" or "NotPowered"
@@ -204,20 +208,30 @@ namespace wally
                 }
             }
 
+            // Uncomment the following line to reorder the Kinects,
+            // if they don't match
+            // this.sensors.Reverse();
+
+            // MEMORY MAPPED FILES
 
             this.initMemoryFiles();
 
+            // MemoryMapData handles Skeletons and Filenames
             var mappedfileThread = new Thread(MemoryMapData);
             mappedfileThread.SetApartmentState(ApartmentState.STA);
             mappedfileThread.Start();
 
+            // MemoryMapDataMask handles the depth-Masks
             var mappedfileMaskThread = new Thread(MemoryMapDataMask);
             mappedfileMaskThread.SetApartmentState(ApartmentState.STA);
             mappedfileMaskThread.Start();
 
-            /// MUTEX Stuff
+
+            // Start the processes
             this.processes = new System.Collections.ArrayList();
+
             int i = 0;
+
             foreach (KinectSensor sensor in this.sensors)
             {
                 Process p = new System.Diagnostics.Process();
@@ -226,7 +240,12 @@ namespace wally
                   = Environment.CurrentDirectory + "\\ConsoleApplication1.exe";
                 p.StartInfo.WindowStyle
                   = System.Diagnostics.ProcessWindowStyle.Normal;
+
+                // Pass the UID, so the process chooses the correct Kinect
+                // pass the local ID, so the process knows which MemoryMappedFiles to use
                 p.StartInfo.Arguments = sensor.UniqueKinectId + " " + i;
+
+                // And here we go.
                 p.Start();
                 this.processes.Add(p);
                 i++;
@@ -234,18 +253,11 @@ namespace wally
 
             this.windowSetUp();
 
-            //Init Polyline
-            ////myPolyline = new Polyline();
-            ////myPolyline.Stroke = System.Windows.Media.Brushes.White;
-            ////myPolyline.StrokeThickness = 2;
-            ////myPolyline.FillRule = FillRule.EvenOdd;
-            ////myPonyLines.Add(myPolyline);
-            ////currentLine = (Polyline)myPonyLines[myPonyLines.Count - 1];
-            ////myCanvas.Children.Add((Polyline)myPonyLines[myPonyLines.Count - 1]);
 
-
+            // Initialize the Bitmap for thr Shadows
             this.shadowBitmap = new WriteableBitmap(320, 240, 96.0, 96.0, PixelFormats.Bgra32, null);
 
+            // Load the images
             this.canImg = new BitmapImage(new Uri("Resources/Can.png", UriKind.Relative));
             this.paintingColorsImg = new BitmapImage(new Uri("Resources/paintingColorsImg.png", UriKind.Relative));
 
@@ -256,14 +268,11 @@ namespace wally
         /// </summary>
         private void windowSetUp()
         {
-
-            double screenWidth = System.Windows.SystemParameters.VirtualScreenWidth;
-            double screenHeight = System.Windows.SystemParameters.VirtualScreenHeight;
-
+            // our wired target resolution
             this.Width = 3412;
             this.Height = 480;
 
-
+            // Add a decent Background
             this.Background = new RadialGradientBrush(Color.FromRgb(100, 100, 100), Color.FromRgb(50, 50, 50));
 
             this.WindowStyle = WindowStyle.None;
@@ -271,6 +280,9 @@ namespace wally
             this.Cursor = System.Windows.Input.Cursors.None;
         }
 
+        /// <summary>
+        /// Basic Timer to limit the time users can draw
+        /// </summary>
         private void PaintingTimer()
         {
             CountDownClock(30, TimeSpan.FromSeconds(1), cur => myTimer.Text = cur.ToString());
@@ -297,15 +309,6 @@ namespace wally
             };
             ts(count);
             dispatchTimer.Start();
-
-            //String timerText = timerValue.ToString();
-            //TextBlock myTimer = new TextBlock();
-            //myTimer.Height = 50;
-            //myTimer.Width = 200;
-            //myTimer.Text = timerText;
-            //myTimer.Foreground = new SolidColorBrush(Colors.Black);
-            //myCanvas.Children.Add(myTimer);
-            //timerValue--;
         }
 
         /// <summary>
@@ -415,6 +418,9 @@ namespace wally
             }
         }
 
+        /// <summary>
+        /// Basic Function where the drawing happens.
+        /// </summary>
         private void Painting()
         {
             foreach (Player player in players)
@@ -489,6 +495,9 @@ namespace wally
             }
         }
 
+        /// <summary>
+        /// Draws the Elements which are defined by the position of the Skeleton.
+        /// </summary>
         private void DrawSkeleton()
         {
             using (DrawingContext dc = this.drawingGroup.Open())
@@ -558,9 +567,9 @@ namespace wally
                         Image2.VerticalAlignment = System.Windows.VerticalAlignment.Top;
                         Image2.Margin = new Thickness(TargetWidth / 2.5, 0, 0, 0); // origin
                     }
-                    var test = myGrid.FadeOut();
-                    test.Completed += new EventHandler(Story_Completed);
-                    test.Begin();
+                    var gridAnimationFadeOut = myGrid.FadeOut();
+                    gridAnimationFadeOut.Completed += new EventHandler(DrawingRun_Completed);
+                    gridAnimationFadeOut.Begin();
 
                 }
 
@@ -580,7 +589,15 @@ namespace wally
             }
         }
 
-        private void Story_Completed(object sender, EventArgs e)
+
+
+        /// <summary>
+        /// Animation callback that clears all Elements drawn by users 
+        /// and lets them start with a fresh canvas.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void DrawingRun_Completed(object sender, EventArgs e)
         {
             foreach (Canvas canvas in playerCanvases)
             {
@@ -591,8 +608,6 @@ namespace wally
             Image1.Source = null;
             Image2.Source = null;
             PaintingTimer();
-
-
         }
 
 
@@ -609,11 +624,23 @@ namespace wally
             return new Point(depthPoint.X, depthPoint.Y);
         }
 
+        /// <summary>
+        /// Legacy function for the use with one Kinect.
+        /// </summary>
+        /// <param name="point"></param>
+        /// <returns></returns>
         private Point stretchPointToScreen(Point point)
         {
             return this.stretchPointToScreen(point, 0);
         }
 
+        /// <summary>
+        /// Recalculates a point to whatever the target resoltion is. 
+        /// Expects a default resolution of 640x480.
+        /// </summary>
+        /// <param name="point"></param>
+        /// <param name="kinect"></param>
+        /// <returns></returns>
         private Point stretchPointToScreen(Point point, int kinect)
         {
             Point screenPoint = new Point();
@@ -669,8 +696,6 @@ namespace wally
             skeletonMutex.ReleaseMutex();
 
 
-
-
             var pictureMutex = new Mutex(true, "picturemutex");
 
             char[] emptyChar = new char[mmf_picture.Length];
@@ -686,6 +711,7 @@ namespace wally
 
             bool empty = false;
 
+            // Stopwatch is used to manually limit the refresh rate to 30 fps.
             Stopwatch stopwatch = new Stopwatch();
 
             while (true)
@@ -714,6 +740,7 @@ namespace wally
 
                             Array.Copy(mmf_result, skelTemp, mmf_result.Length);
 
+                            // Check if this is a skeleton or just 0s
                             empty = skelTemp.All(B => B == default(Byte));
 
                             skeletonMutex.ReleaseMutex();
@@ -722,12 +749,16 @@ namespace wally
                             {
                                 try
                                 {
+                                    // Deserialize the Skeleton
                                     BinaryFormatter bf = new BinaryFormatter();
                                     MemoryStream ms = new MemoryStream(mmf_result);
                                     Skeleton skelNew = (Skeleton)bf.Deserialize(ms);
 
                                     bool playerRecognized = false;
 
+                                    // Check if we are already tracking this skeleton
+                                    // if so, map it to the a specific player
+                                    // if not, activate a new player
                                     foreach (Player player in players)
                                     {
                                         if (player.getState())
@@ -784,11 +815,8 @@ namespace wally
 
                 }
 
-                long trackDelay = stopwatch.ElapsedMilliseconds;
-                // Get The Mask
 
-
-
+                // And now the file-path
                 for (int i = 0; i < pictureAccess.Length; i++)
                 {
                     char[] pictureTemp = new char[mmf_picture.Length];
@@ -802,8 +830,11 @@ namespace wally
                     pictureMutex.ReleaseMutex();
 
                     string input = new String(pictureTemp);
+
+                    // trim trailing 0 chars
                     input = input.Replace("\0", string.Empty);
 
+                    // not empty
                     if (!Enumerable.SequenceEqual(pictureTemp, emptyChar) && !pictureData.Contains(input))
                     {
                         if (pictureData.Count > i)
@@ -821,21 +852,29 @@ namespace wally
 
                 }
 
+
+                // After all: REPAINT TIME!!!
+                Dispatcher.Invoke(DispatcherPriority.Send,
+                             new Action(DrawTimer));
+
+
+                // Manually limit the refresh rate
                 if (stopwatch.ElapsedMilliseconds < 33)
                 {
                     Thread.Sleep((int)(33.0 - stopwatch.ElapsedMilliseconds));
                 }
 
 
-                // After all: REPAINT TIME!!!
-                Dispatcher.Invoke(DispatcherPriority.Send,
-                             new Action(DrawTimer));
             }
 
 
 
         }
 
+
+        /// <summary>
+        /// Reads the Data for the Shadow Mask from the Memory Mapped Files.
+        /// </summary>
         private void MemoryMapDataMask()
         {
             var maskMutex = new Mutex(true, "maskmutex");
@@ -846,6 +885,7 @@ namespace wally
 
             while (true)
             {
+                // read the mask
                 for (int i = 0; i < maskAccess.Length; i++)
                 {
                     MemoryMappedViewAccessor reader = maskAccess[i];
@@ -862,13 +902,16 @@ namespace wally
                     this.maskData[i] = maskTemp;
                 }
 
+
+                Dispatcher.Invoke(DispatcherPriority.Send,
+                             new Action(DrawMask));
+
+                // Again Rate-limiting
                 if (stopwatch.ElapsedMilliseconds < 33)
                 {
                     Thread.Sleep((int)(33.0 - stopwatch.ElapsedMilliseconds));
                 }
 
-                Dispatcher.Invoke(DispatcherPriority.Send,
-                             new Action(DrawMask));
             }
         }
 
@@ -915,22 +958,25 @@ namespace wally
                 this.pictureFiles[p] = MemoryMappedFile.CreateNew(filename, MemoryMappedFileCapacityPicture);
                 this.pictureAccess[p] = this.pictureFiles[p].CreateViewAccessor();
 
-                // ... more Memory Files for other Channels.
             }
         }
 
 
-
+        /// <summary>
+        /// Invokes the more specific drawing functions. 
+        /// Used to only have one Dispatcher-Call.
+        /// </summary>
         private void DrawTimer()
         {
-
 
             this.Painting();
             this.DrawSkeleton();
 
-
         }
 
+        /// <summary>
+        /// Combines all availbale shadow masks and creates a image of it (ABGR)
+        /// </summary>
         private void DrawMask()
         {
 
@@ -941,10 +987,10 @@ namespace wally
             int stride = (width * this.maskBitsPerPixel) / 8;
             byte[] pixelData = new byte[height * stride];
 
-            // Prepare MaskArray
-
 
             byte[] incomingMask;
+
+            // Combine the masks, if necessary
             if (this.maskData.Length > 1)
             {
                 incomingMask = new byte[this.maskData[0].Length * this.maskData.Length];
@@ -952,7 +998,6 @@ namespace wally
                 int line = 0;
                 for (int i = 0; i < incomingMask.Length; i++)
                 {
-
 
                     int currentLine = i % width;
                     int position = line * origWidth + (currentLine % origWidth);
@@ -975,6 +1020,8 @@ namespace wally
                 incomingMask = maskData[0];
             }
 
+            // Create an image represented as byte array with semi opaque pixels
+            // where the shadows are.
             int j = 0;
             for (int i = 0; i < height * stride; i += (this.maskBitsPerPixel / 8))
             {
@@ -994,9 +1041,8 @@ namespace wally
                 j++;
             }
 
-
-
-
+            // activate this image
+            // TODO: Use an writableBitmap. Might be better performance-wise.
             this.MaskedColor.Source = BitmapSource.Create(
                 width,
                 height,
@@ -1012,7 +1058,7 @@ namespace wally
 
 
         /// <summary>
-        /// Keyhandler to kill the application. 
+        /// ESC to quit. Keyhandler to kill the application. 
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -1031,8 +1077,3 @@ namespace wally
 
     }
 }
-
-
-
-
-

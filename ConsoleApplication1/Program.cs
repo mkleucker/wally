@@ -70,6 +70,11 @@ namespace KinectCommunication
 
         private byte opaquePixelValue = 255;
 
+
+        /// <summary>
+        /// Creates the Program object.
+        /// </summary>
+        /// <param name="args"></param>
         static void Main(string[] args)
         {
 
@@ -86,12 +91,15 @@ namespace KinectCommunication
             string kinectId = args[0];
             string pId = args[1];
 
-
-
-
             new Program(kinectId, pId);
         }
 
+
+        /// <summary>
+        /// Initialize all the things!
+        /// </summary>
+        /// <param name="kinectId"></param>
+        /// <param name="pId"></param>
         public Program(string kinectId, string pId)
         {
             this.processId = pId;
@@ -99,6 +107,8 @@ namespace KinectCommunication
 
             try
             {
+                // We assume the main application already has set up all 
+                // the MMF and Mutex stuff
                 skeletonMutex = Mutex.OpenExisting("skeletonmutex");
                 skeletonFiles = new MemoryMappedFile[2];
                 skeletonWriters = new MemoryMappedViewAccessor[2];
@@ -124,6 +134,7 @@ namespace KinectCommunication
                 Console.WriteLine("Memory-mapped file does not exist.");
             }
 
+            // Choose the correct Kinect
             foreach (var potentialSensor in KinectSensor.KinectSensors)
             {
                 Console.WriteLine(potentialSensor.GetHashCode().ToString());
@@ -141,7 +152,6 @@ namespace KinectCommunication
             var mappedfileThread = new Thread(transmitData);
             mappedfileThread.SetApartmentState(ApartmentState.STA);
             mappedfileThread.Start();
-
 
             initSensor();
 
@@ -168,7 +178,6 @@ namespace KinectCommunication
             // Setup Vars for Depth and Image
             this.depthWidth = this.sensor.DepthStream.FrameWidth;
             this.depthHeight = this.sensor.DepthStream.FrameHeight;
-            Console.WriteLine(this.depthHeight);
             int colorWidth = this.sensor.ColorStream.FrameWidth;
             int colorHeight = this.sensor.ColorStream.FrameHeight;
             this.colorToDepthDivisor = colorWidth / this.depthWidth;
@@ -176,7 +185,7 @@ namespace KinectCommunication
             this.colorPixels = new byte[this.sensor.ColorStream.FramePixelDataLength];
 
             this.greenScreenPixelData = new byte[this.sensor.DepthStream.FramePixelDataLength];
-            Console.WriteLine(this.sensor.DepthStream.FramePixelDataLength);
+
             this.colorCoordinates = new ColorImagePoint[this.sensor.DepthStream.FramePixelDataLength];
 
             skelToTransfer = new byte[0][];
@@ -195,12 +204,14 @@ namespace KinectCommunication
         }
 
         /// <summary>
-        /// Skeleton
+        /// Listening for incoming data from the sensors
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs e)
         {
+
+            // 1. SKELETON
 
             Skeleton[] skeletons = new Skeleton[0];
 
@@ -254,6 +265,8 @@ namespace KinectCommunication
 
             }
 
+            // 2. DEPTH
+
             bool depthReceived = false;
 
             using (DepthImageFrame depthFrame = e.OpenDepthImageFrame())
@@ -266,6 +279,8 @@ namespace KinectCommunication
                     depthReceived = true;
                 }
             }
+
+            // 3. COLOR
 
             bool colorReceived = false;
 
@@ -283,11 +298,12 @@ namespace KinectCommunication
 
 
 
-            // do our processing outside of the using block
-            // so that we return resources to the kinect as soon as possible
 
             if (true == depthReceived)
             {
+
+                // Create a greenscreen-like mask
+
                 this.sensor.CoordinateMapper.MapDepthFrameToColorFrame(
                     DepthFormat,
                     this.depthPixels,
@@ -340,6 +356,8 @@ namespace KinectCommunication
                 }
             }
 
+
+            // Save the webcam image
             if (true == colorReceived && colorFrameCounter > 210 && false == pictureTaken)
             {
 

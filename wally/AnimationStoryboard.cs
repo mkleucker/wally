@@ -9,13 +9,17 @@ using System.Windows.Media.Animation;
 
 namespace wally
 {
+    /// <summary>
+    /// A helper class to allow FadeIn and FadeOut animations on XAML-Elements programatically.
+    /// Orginal by http://eclipsed4utoo.azurewebsites.net/wpf-create-animation-programmatically/
+    /// </summary>
     public static class ControlAnimationExtensionMethods
     {
         public static Storyboard FadeIn(this UIElement targetControl)
         {
             DoubleAnimation fadeInAnimation = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(1.5)));
             Storyboard.SetTarget(fadeInAnimation, targetControl);
-            Storyboard.SetTargetProperty(fadeInAnimation, new PropertyPath(UIElement.OpacityProperty));
+            Storyboard.SetTargetPrsoperty(fadeInAnimation, new PropertyPath(UIElement.OpacityProperty));
             Storyboard sb = new Storyboard();
             sb.Children.Add(fadeInAnimation);
 
